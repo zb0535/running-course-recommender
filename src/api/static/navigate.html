@@ -375,10 +375,20 @@ function fmtKoreanTime(d){
 let voiceOn = true, spokenKey = null, simulatedNavigation = false;
 
 function speak(text, interrupt=false){
-  if (!voiceOn || !window.speechSynthesis) return;
+  if (!voiceOn) return;
+  if (!window.speechSynthesis){
+    // 카카오톡 등 인앱 브라우저는 음성합성이 없는 경우가 많다 — 조용히 넘어가면 원인을 모른다
+    document.getElementById('status').textContent = '이 브라우저는 음성 안내를 지원하지 않습니다. Chrome/Safari로 열어주세요.';
+    return;
+  }
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'ko-KR';
   utter.rate = 1.05;
+  // 'not-allowed'면 터치 없이 말하려다 막힌 것, 'synthesis-failed'/'language-unavailable'이면 한국어 음성 문제
+  utter.onerror = (e) => {
+    if (e.error === 'interrupted' || e.error === 'canceled') return;
+    document.getElementById('status').textContent = `음성 안내 오류: ${e.error}`;
+  };
   if (interrupt) window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utter);
 }
@@ -563,13 +573,73 @@ function renderCandidateList(){
 
 // GPS 좌표가 경로 위 어디쯤인지(누적거리, 경로 이탈거리) 찾는다 — 턴바이턴 매칭 로직은
 // 시뮬레이션과 실제 GPS 모드가 완전히 동일하게 쓴다. 다른 건 "위치를 어디서 받아오느냐"뿐이다.
-function nearestProgressOnPath(latlng, path, cum){
-  let bestI = 0, bestD = Infinity;
-  for (let i=0;i<path.length;i++){
-    const d = haversine(latlng, path[i]);
-    if (d < bestD){ bestD = d; bestI = i; }
+//
+// 경로 전체에서 "가장 가까운 점"을 고르면 왕복·순환 코스가 깨진다. 출발점과 도착점이
+// 같은 자리라 출발점에 서 있어도 도착 직전 지점이 더 가깝게 잡히면 곧바로 "도착"이 뜨고,
+// 반대로 도착할 때 출발점으로 잡히면 영영 도착하지 않는다. 가는 길과 오는 길이 같은
+// 도로인 구간도 마찬가지다. 그래서 서버 step_position.py가 안내 위치를 정할 때와 같은
+// 원리로, 직전 진행 위치 바로 앞 구간에서만 현재 위치를 찾고 진행 거리는 뒤로 가지 않게 한다.
+const TRACK = {
+  FORWARD_M: 300,         // 위치 한 번 갱신에 이만큼 앞까지만 찾는다
+  ON_TRACK_M: 40,         // 경로에서 이보다 멀면 이탈로 보고 진행을 멈춘다
+  SAME_PASS_SLACK_M: 12,  // 가는 길·오는 길이 나란히 붙어 있으면 먼저 지나는 쪽을 고른다
+  MAX_ACCURACY_M: 50,     // GPS 오차가 이보다 크면(수신 직후 기지국 위치 등) 진행 판정에 쓰지 않는다
+  REJOIN_AFTER_FIXES: 5,  // 이탈이 이만큼 이어지면 더 앞쪽에서 다시 합류 지점을 찾는다(샛길)
+  REJOIN_MAX_M: 1500,     // 그때도 이만큼, 그리고 코스 절반까지만 건너뛴다 — 출발점에서 도착점으로 튀지 않게
+  ARRIVE_M: 20,           // GPS 오차를 감안한 도착 판정 거리
+};
+
+// 점 p를 선분 a-b의 [tMin, tMax] 범위에 투영. 짧은 구간이라 평면 근사로 충분하다.
+function projectOntoSegment(p, a, b, tMin, tMax){
+  const kx = 111320 * Math.cos(p[0] * Math.PI / 180), ky = 111320;
+  const ax = (a[1] - p[1]) * kx, ay = (a[0] - p[0]) * ky;
+  const dx = (b[1] - a[1]) * kx, dy = (b[0] - a[0]) * ky;
+  const len2 = dx * dx + dy * dy;
+  const t = Math.max(tMin, Math.min(tMax, len2 ? -(ax * dx + ay * dy) / len2 : 0));
+  return { t, distM: Math.hypot(ax + t * dx, ay + t * dy) };
+}
+
+function createProgressTracker(path, cum){
+  const total = cum[cum.length - 1];
+  let progressM = 0, offStreak = 0;
+
+  // 누적거리 [fromM, toM] 구간에서만 현재 위치에 맞는 지점을 찾는다. 비슷하게 가까운 후보가
+  // 여러 번 나오면(같은 길을 갔다 오는 경우) 경로상 먼저 지나는 쪽의 가장 가까운 점을 고른다.
+  function match(latlng, fromM, toM){
+    const cands = [];
+    for (let i = 0; i < path.length - 1; i++){
+      if (cum[i + 1] < fromM) continue;
+      if (cum[i] > toM) break;
+      const len = cum[i + 1] - cum[i];
+      const tMin = len > 0 ? Math.max(0, (fromM - cum[i]) / len) : 0;
+      const tMax = len > 0 ? Math.min(1, (toM - cum[i]) / len) : 0;
+      const { t, distM } = projectOntoSegment(latlng, path[i], path[i + 1], tMin, tMax);
+      cands.push({ atM: cum[i] + t * len, distM });
+    }
+    if (!cands.length) return null;
+    const best = Math.min(...cands.map(c => c.distM));
+    let k = cands.findIndex(c => c.distM <= best + TRACK.SAME_PASS_SLACK_M);
+    while (k + 1 < cands.length && cands[k + 1].distM <= cands[k].distM) k++;
+    return cands[k];
   }
-  return { cumDistance: cum[bestI], offTrackM: bestD };
+
+  return {
+    get progressM(){ return progressM; },
+    update(latlng){
+      let m = match(latlng, progressM, Math.min(total, progressM + TRACK.FORWARD_M));
+      if (!m || m.distM > TRACK.ON_TRACK_M){
+        const offTrackM = m ? m.distM : Infinity;
+        if (++offStreak < TRACK.REJOIN_AFTER_FIXES) return { progressM, offTrackM, onTrack: false };
+        const reach = Math.min(TRACK.REJOIN_MAX_M, total / 2);
+        const rejoin = match(latlng, progressM, Math.min(total, progressM + reach));
+        if (!rejoin || rejoin.distM > TRACK.ON_TRACK_M) return { progressM, offTrackM, onTrack: false };
+        m = rejoin;
+      }
+      offStreak = 0;
+      progressM = Math.max(progressM, m.atM);
+      return { progressM, offTrackM: m.distM, onTrack: true };
+    },
+  };
 }
 
 function enterNavMode(){
@@ -605,7 +675,9 @@ function updateProgressUI(lat, lng, distanceSoFarM, totalM, locatedSteps, paceMi
   document.getElementById('etaTime').textContent = fmtKoreanTime(new Date(Date.now() + remainKm * paceMinPerKm * 60000));
   document.getElementById('etaSub').textContent = `${fmt(remainKm)}km · ${Math.max(0, Math.round(remainKm * paceMinPerKm))}분 남음`;
 
-  if (distanceSoFarM >= totalM - 5){
+  // 시뮬레이션은 정확히 끝까지 가지만, GPS는 오차가 있어 끝점 5m 안으로 들어오지 못할 수 있다
+  const arriveM = simulatedNavigation ? 5 : TRACK.ARRIVE_M;
+  if (distanceSoFarM >= totalM - arriveM){
     document.getElementById('turnPrimary').hidden = true;
     document.getElementById('turnSecondary').hidden = true;
     document.getElementById('arrivedBadge').hidden = false;
@@ -659,17 +731,34 @@ function startNavigationGPS(course){
   document.getElementById('status').classList.add('live');
 
   let gotFirstFix = false;
+  const tracker = createProgressTracker(pathArr, cum);
   watchId = navigator.geolocation.watchPosition(
     (geo) => {
       gotFirstFix = true;
-      const { latitude: lat, longitude: lng, speed } = geo.coords;
-      const { cumDistance, offTrackM } = nearestProgressOnPath([lat, lng], pathArr, cum);
+      const { latitude: lat, longitude: lng, speed, accuracy } = geo.coords;
       const pace = speed && speed > 0.2 ? (1000 / speed) / 60 : PACE_MIN_PER_KM; // 실측 속도가 있으면 그걸로 ETA 계산
-      const arrived = updateProgressUI(lat, lng, cumDistance, total, locatedSteps, pace);
-      document.getElementById('status').textContent = offTrackM > 40
-        ? `실제 위치 수신 중 · 경로에서 약 ${Math.round(offTrackM)}m 떨어져 있음`
-        : '실제 위치로 안내 중';
-      if (arrived) navigator.geolocation.clearWatch(watchId);
+      const status = document.getElementById('status');
+
+      // 수신 직후에는 기지국·와이파이 기준의 부정확한 위치가 먼저 온다. 마커만 옮기고 진행은 판정하지 않는다.
+      if (accuracy > TRACK.MAX_ACCURACY_M){
+        updateProgressUI(lat, lng, tracker.progressM, total, locatedSteps, pace);
+        status.textContent = `GPS 신호를 잡는 중 (오차 ±${Math.round(accuracy)}m) — 정확해지면 안내를 이어갑니다`;
+        return;
+      }
+
+      const { progressM, offTrackM, onTrack } = tracker.update([lat, lng]);
+      const arrived = updateProgressUI(lat, lng, progressM, total, locatedSteps, pace);
+      if (arrived){
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        return;  // updateProgressUI가 쓴 "도착!" 문구를 덮어쓰지 않는다
+      }
+      if (onTrack) status.textContent = '실제 위치로 안내 중';
+      else if (progressM === 0) status.textContent =
+        `출발점에서 약 ${Math.round(haversine([lat, lng], pathArr[0]))}m 떨어져 있습니다 — 출발점(초록 핀)으로 가면 안내가 시작됩니다`;
+      else status.textContent = isFinite(offTrackM)
+        ? `경로에서 약 ${Math.round(offTrackM)}m 벗어났습니다 — 파란 선으로 돌아가면 이어서 안내합니다`
+        : '경로를 벗어났습니다';
     },
     (err) => {
       document.getElementById('status').textContent = `위치 정보를 가져오지 못했습니다(${err.message}) — 시뮬레이션으로 대신 진행합니다.`;
@@ -691,10 +780,21 @@ function startNavigationGPS(course){
   }, 12000);
 }
 
-document.getElementById('navBtn').addEventListener('click', () => startNavigationGPS(window._currentCourse));
-document.getElementById('simBtn').addEventListener('click', () => startNavigationSimulated(window._currentCourse));
+// 모바일 브라우저(특히 iOS Safari)는 사용자가 누른 그 순간(click 핸들러 안)에 한 번 말해야
+// 이후 타이머·GPS 콜백에서 부르는 음성을 허용한다. 안내는 전부 콜백에서 나오므로 여기서 한 번 열어 둔다.
+// enterNavMode()가 speechSynthesis.cancel()을 부르므로 반드시 start 함수 "뒤"에 말한다.
+document.getElementById('navBtn').addEventListener('click', () => {
+  startNavigationGPS(window._currentCourse);
+  speak('안내를 시작합니다');
+});
+document.getElementById('simBtn').addEventListener('click', () => {
+  startNavigationSimulated(window._currentCourse);
+  speak('시뮬레이션을 시작합니다');
+});
 document.getElementById('restartBtn').addEventListener('click', () => {
-  if (window._currentCourse) startNavigationSimulated(window._currentCourse);
+  if (!window._currentCourse) return;
+  startNavigationSimulated(window._currentCourse);
+  speak('다시 시작합니다');
 });
 document.getElementById('recenterBtn').addEventListener('click', recenterOnRunner);
 document.getElementById('voiceBtn').addEventListener('click', (e) => {
@@ -732,6 +832,12 @@ document.querySelectorAll('#locBtns button').forEach(b => b.addEventListener('cl
 document.getElementById('currentLocationBtn').addEventListener('click', () => {
   const button = document.getElementById('currentLocationBtn');
   const status = document.getElementById('status');
+  // http://192.168.x.x:8000 처럼 HTTPS가 아닌 주소면 브라우저가 권한 창도 없이 거부한다(error.code 1).
+  // 그대로 두면 '권한이 거부됐습니다'로 보여 원인을 잘못 짚게 되므로 먼저 걸러서 알려준다.
+  if (!window.isSecureContext){
+    status.textContent = '위치 정보는 HTTPS 주소에서만 쓸 수 있습니다. http://IP:8000 대신 HTTPS 터널(cloudflared·ngrok) 주소로 접속하세요.';
+    return;
+  }
   if (!navigator.geolocation){
     status.textContent = '이 브라우저에서 위치 정보를 사용할 수 없습니다. 시뮬레이션 위치를 선택해주세요.';
     return;
