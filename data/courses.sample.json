@@ -1,0 +1,47 @@
+[
+  {
+    "id": "yeosu-coastal-01",
+    "name": "여수 이순신광장~장군도 해안로",
+    "region": "여수",
+    "distance_km": 4.2,
+    "elevation_gain_m": 15,
+    "safety_score": 0.82,
+    "traffic_signal_count": 1,
+    "green_ratio": 0.1,
+    "coastline_proximity": 0.95,
+    "surface": "paved",
+    "tags": ["바다뷰", "차없는길"],
+    "path": [],
+    "source": "manual_curation"
+  },
+  {
+    "id": "gwangju-park-01",
+    "name": "광주 중외공원 순환로",
+    "region": "광주",
+    "distance_km": 3.1,
+    "elevation_gain_m": 40,
+    "safety_score": 0.75,
+    "traffic_signal_count": 0,
+    "green_ratio": 0.88,
+    "coastline_proximity": 0.0,
+    "surface": "paved",
+    "tags": ["숲길", "차없는길"],
+    "path": [],
+    "source": "manual_curation"
+  },
+  {
+    "id": "gwangju-urban-01",
+    "name": "광주 상무지구 도심 코스",
+    "region": "광주",
+    "distance_km": 5.5,
+    "elevation_gain_m": 20,
+    "safety_score": 0.9,
+    "traffic_signal_count": 12,
+    "green_ratio": 0.15,
+    "coastline_proximity": 0.0,
+    "surface": "paved",
+    "tags": ["도심"],
+    "path": [],
+    "source": "manual_curation"
+  }
+]
