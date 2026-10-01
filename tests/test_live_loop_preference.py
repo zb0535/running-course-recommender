@@ -3,7 +3,7 @@ from fastapi import BackgroundTasks
 from src.api import main
 
 
-def test_current_location_roundtrip_prefers_live_loop_when_db_courses_exist(monkeypatch):
+def test_current_location_loop_prefers_live_loop_when_db_courses_exist(monkeypatch):
     db_course = {
         "id": "stored-course",
         "name": "저장 코스",
@@ -17,14 +17,14 @@ def test_current_location_roundtrip_prefers_live_loop_when_db_courses_exist(monk
             "id": "loop-over-target", "name": "긴 순환 코스",
             "path": [[34.0, 127.0], [34.01, 127.01], [34.0, 127.0]],
             "distance_km": 5.433, "elevation_gain_m": 10, "safety_score": 0.7,
-            "traffic_signal_count": 0, "tags": [], "route_type": "roundtrip",
+            "traffic_signal_count": 0, "tags": [], "route_type": "loop",
             "source": "live_generated",
         },
         {
             "id": "loop-on-target", "name": "목표 거리 순환 코스",
             "path": [[34.0, 127.0], [34.005, 127.005], [34.0, 127.0]],
             "distance_km": 5.0, "elevation_gain_m": 10, "safety_score": 0.7,
-            "traffic_signal_count": 0, "tags": [], "route_type": "roundtrip",
+            "traffic_signal_count": 0, "tags": [], "route_type": "loop",
             "source": "live_generated",
         },
     ]
@@ -38,7 +38,7 @@ def test_current_location_roundtrip_prefers_live_loop_when_db_courses_exist(monk
         main.RecommendRequest(
             current_lat=34.0,
             current_lng=127.0,
-            route_type="roundtrip",
+            route_type="loop",
             preferred_distance_km=5.0,
             use_live_environment=False,
         ),

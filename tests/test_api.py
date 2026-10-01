@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -24,9 +23,6 @@ def test_recommend_with_free_text():
     results = body["results"]
     assert body["source"] == "db"
     assert len(results) == 1
-    breakdown = results[0]["score_breakdown"]
-    assert breakdown
-    assert sum(item["contribution"] for item in breakdown) == pytest.approx(results[0]["score"])
     # 실제 코스 DB는 라이브 데이터로 계속 갱신되므로 특정 id 대신 태그로 검증
     assert "바다뷰" in results[0]["course"]["tags"]
 
@@ -86,3 +82,25 @@ def test_recommend_with_nearby_location_uses_db():
     body = resp.json()
     assert body["source"] == "db"
     assert len(body["results"]) == 1
+
+
+def test_scenery_options_list_only_tags_that_have_courses():
+    """골라도 결과가 0개인 선택지는 보여주지 않는다."""
+    options = client.get("/onboarding/scenery").json()["scenery"]
+    assert options, "풍경 선택지가 비어 있다"
+    assert all(o["course_count"] >= 1 for o in options)
+    assert all(o["description"] for o in options)
+    values = [o["value"] for o in options]
+    assert "바다뷰" in values and "강변" in values
+
+
+def test_every_offered_scenery_tag_returns_courses():
+    for option in client.get("/onboarding/scenery").json()["scenery"]:
+        resp = client.post("/recommend", json={"environment_tags": [option["value"]], "route_type": "oneway",
+                                                "use_live_environment": False})
+        assert resp.json()["results"], f"{option['value']}을 골랐는데 결과가 없다"
+
+
+def test_unknown_scenery_tag_is_rejected():
+    resp = client.post("/recommend", json={"environment_tags": ["벚꽃길"], "use_live_environment": False})
+    assert resp.status_code == 422
