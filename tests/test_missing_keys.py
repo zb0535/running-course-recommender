@@ -24,6 +24,8 @@ def test_health_never_leaks_key_values(monkeypatch):
 
 def test_missing_tmap_key_returns_actionable_error_not_500(monkeypatch):
     monkeypatch.delenv("TMAP_APP_KEY", raising=False)
+    # 경유지 스냅(Overpass)까지 가지 않게 해서, 실패 원인이 키 없음임을 분명히 한다
+    monkeypatch.setattr(generate_live, "snap_vertices", lambda vertices: vertices)
     monkeypatch.setattr(generate_live, "find_nearby_point", lambda *a, **kw: (34.75, 127.75))
 
     resp = client.post("/recommend", json={

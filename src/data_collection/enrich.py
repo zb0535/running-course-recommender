@@ -65,19 +65,6 @@ def traffic_signal_count(path: list, signal_nodes: list, buffer_m: float = SIGNA
     return count
 
 
-def derive_tags(green: float, coastal: float, signals: int) -> list:
-    tags = []
-    if green >= 0.4:
-        tags.append("숲길")
-    if coastal >= 0.4:
-        tags.append("바다뷰")
-    if signals == 0:
-        tags.append("차없는길")
-    if not tags:
-        tags.append("도심")
-    return tags
-
-
 def enrich_course(course: dict, osm_features: dict) -> dict:
     """course에 path가 있어야 함. osm_features는 osm_overpass.fetch_osm_features() 반환값."""
     if osm_features.get("osm_available") is False:
@@ -94,5 +81,16 @@ def enrich_course(course: dict, osm_features: dict) -> dict:
     enriched["green_ratio"] = green
     enriched["coastline_proximity"] = coastal
     enriched["traffic_signal_count"] = signals
-    enriched["tags"] = derive_tags(green, coastal, signals)
+
+    # 풍경 태그는 scenery.py의 측정으로만 붙인다. 예전에는 여기서 "녹지비율 0.4 이상이면 숲길"로
+    # 붙였는데, 그 기준으로는 26개 코스 중 22개가 숲길이었다.
+    if "scenery" not in enriched and not enriched.get("scenery_pending"):
+        from . import scenery
+
+        measured = scenery.tags_for_path(path, enriched)
+        if measured is None:
+            enriched["tags"] = []
+            enriched["scenery_pending"] = True  # 지형 데이터를 받은 뒤 backfill_scenery로 채운다
+        else:
+            enriched["scenery"], enriched["tags"] = measured
     return enriched

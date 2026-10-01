@@ -1,3 +1,5 @@
+import pytest
+
 from src.recommend import route_type
 from src.recommend.route_type import apply_route_type, attach_actual_return_path, make_roundtrip, mark_oneway
 
@@ -73,6 +75,40 @@ def test_mark_oneway_leaves_path_untouched():
 def test_apply_route_type_dispatches():
     assert apply_route_type(COURSE, "roundtrip")["distance_km"] == 6.0
     assert apply_route_type(COURSE, "oneway")["distance_km"] == 3.0
+
+
+CLOSED_LOOP = {
+    "id": "loop-1",
+    "source": "live_generated",
+    "route_type": "roundtrip",
+    "distance_km": 6.81,
+    "elevation_gain_m": 25.0,
+    "path": [[34.70, 127.70], [34.71, 127.70], [34.71, 127.71], [34.70, 127.70]],
+    "steps": [{"lat": 34.70, "lng": 127.70, "description": "출발", "turn_type": 200}],
+}
+
+
+def test_closed_loop_is_not_doubled_again():
+    """생성된 순환 코스는 이미 출발점으로 돌아온다. 왕복 처리를 또 하면 거리가 2배가 된다."""
+    result = apply_route_type(CLOSED_LOOP, "roundtrip")
+    assert result["distance_km"] == CLOSED_LOOP["distance_km"]
+    assert result["elevation_gain_m"] == CLOSED_LOOP["elevation_gain_m"]
+    assert result["path"] == CLOSED_LOOP["path"]
+
+
+def test_closed_loop_detected_from_geometry_even_without_source():
+    same_start_and_end = {k: v for k, v in CLOSED_LOOP.items() if k != "source"}
+    assert apply_route_type(same_start_and_end, "roundtrip")["distance_km"] == CLOSED_LOOP["distance_km"]
+
+
+def test_open_course_is_still_doubled():
+    assert apply_route_type(COURSE, "roundtrip")["distance_km"] == 6.0
+
+
+def test_attach_actual_return_path_skips_closed_loop(monkeypatch):
+    """루프에는 복귀 경로가 필요 없다 — 부르면 Tmap 호출만 낭비한다."""
+    monkeypatch.setattr(route_type, "get_route", lambda *a, **k: pytest.fail("루프에 복귀 경로를 요청했다"))
+    assert attach_actual_return_path(CLOSED_LOOP) is CLOSED_LOOP
 
 
 def test_attach_actual_return_path_uses_tmap_route(monkeypatch):

@@ -23,3 +23,10 @@ Thumbs.db
 
 # Claude Code
 .claude/
+
+# 사용자별 학습 데이터 (개인 데이터, 커밋 금지)
+data/user_profiles.json
+data/user_profiles.json.tmp
+
+# OSM 지형 데이터 캐시 (다시 받을 수 있음)
+data/osm_cache/

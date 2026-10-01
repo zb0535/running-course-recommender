@@ -4,6 +4,7 @@
 """
 import math
 
+from ..data_collection.scenery import THRESHOLDS as SCENERY_THRESHOLDS
 from .companion import fits_companion, tune_for_companion
 from .profile import elevation_target_m, resolve_target_distance_km, tune_weights
 from .timeofday import time_fit_match
@@ -27,17 +28,6 @@ DEFAULT_WEIGHTS_WITH_ENV = {
     "time_fit": 0.10,
 }
 
-FACTOR_LABELS = {
-    "distance": "거리 적합도",
-    "elevation": "고도 적합도",
-    "safety": "안전도",
-    "signal_free": "신호 적음",
-    "tag_match": "선호 풍경",
-    "environment": "현재 날씨",
-    "time_fit": "시간대 적합도",
-    "route_diversity": "왕복 경로 분리도",
-}
-
 
 def _decay(diff: float, tolerance: float) -> float:
     """차이가 tolerance일 때 약 0.37(1/e)로 떨어지는 완만한 감쇠 함수."""
@@ -53,7 +43,8 @@ def distance_match(course: dict, user: dict) -> float:
     if not preferred:
         return 0.5
     actual = course.get("distance_km", 0)
-    if course.get("source") == "live_generated" and course.get("route_type") == "roundtrip":
+    # 순환 코스는 잘라낼 수 없다(자르면 고리가 끊긴다). 길어도 감점해야 목표 길이에 맞는 게 뽑힌다.
+    if course.get("route_type") == "loop":
         return _decay(abs(actual - preferred), tolerance=preferred * 0.3 + 0.5)
     if actual >= preferred:
         return 1.0
@@ -85,62 +76,53 @@ def signal_free_match(course: dict, user: dict) -> float:
     return 0.5 + 0.5 * base
 
 
+def _tag_strength(tag: str, course: dict) -> float:
+    """코스가 이 풍경을 얼마나 강하게 갖고 있는가 (0, 또는 0.6~1.0).
+
+    태그는 기준을 넘으면 붙으므로, 붙어 있다는 것만으로 0.6을 주고 기준의 2배에서 만점이 된다.
+    바다뷰 태그가 똑같이 붙어 있어도 경로의 100%가 해안인 코스가 41%인 코스보다 앞서야 한다.
+    """
+    if tag not in course.get("tags", []):
+        return 0.0
+    rule = SCENERY_THRESHOLDS.get(tag)
+    value = (course.get("scenery") or {}).get(rule[0]) if rule else None
+    if value is None or not rule[1]:
+        return 1.0  # 측정값이 없는 예전 코스나 파생 태그(도심·산길)는 있는 그대로 인정
+    return 0.6 + 0.4 * max(0.0, min(1.0, (value - rule[1]) / rule[1]))
+
+
 def tag_match(course: dict, user: dict) -> float:
     user_tags = set(user.get("environment_tags", []))
-    course_tags = set(course.get("tags", []))
     if not user_tags:
         return 0.5
-    overlap = user_tags & course_tags
-    return len(overlap) / len(user_tags)
+    return sum(_tag_strength(tag, course) for tag in user_tags) / len(user_tags)
 
 
-def score_course_breakdown(course: dict, user: dict, weights: dict = None,
-                           env_context: dict = None) -> dict:
-    if weights is None:
-        weights = DEFAULT_WEIGHTS_WITH_ENV if env_context is not None else DEFAULT_WEIGHTS
-    weights = tune_weights(weights, user.get("purpose"))
-    weights = tune_for_companion(weights, user.get("companion"))
+def component_scores(course: dict, user: dict, env_context: dict = None) -> dict:
+    """항목별 적합도(각 0~1). 가중치를 곱하기 전 값이라, 이 코스가 무엇 때문에 추천됐는지
+    보여줄 때와 만족도로 사용자 가중치를 학습할 때 쓴다."""
+    from .environment import environment_score
 
-    scores = {
+    return {
         "distance": distance_match(course, user),
         "elevation": elevation_match(course, user),
         "safety": safety_match(course, user),
         "signal_free": signal_free_match(course, user),
         "tag_match": tag_match(course, user),
         "time_fit": time_fit_match(course, user),
+        "environment": environment_score(env_context or {}),
     }
-    if "environment" in weights:
-        from .environment import environment_score
-        scores["environment"] = environment_score(env_context or {})
-
-    if course.get("source") == "live_generated" and course.get("route_type") == "roundtrip":
-        diversity_weight = 0.25
-        distance_priority_bonus = 0.25
-        remaining_weight = 1 - diversity_weight - distance_priority_bonus
-        base_weight_total = sum(weights.values()) or 1.0
-        weights = {
-            key: weight / base_weight_total * remaining_weight
-            for key, weight in weights.items()
-        }
-        weights["distance"] += distance_priority_bonus
-        weights["route_diversity"] = diversity_weight
-        scores["route_diversity"] = 1 - max(0.0, min(1.0, course.get("route_overlap_ratio", 1.0)))
-
-    factors = [
-        {
-            "key": key,
-            "label": FACTOR_LABELS[key],
-            "score": scores[key],
-            "weight": weights[key],
-            "contribution": scores[key] * weights[key],
-        }
-        for key in weights
-    ]
-    return {"total": sum(factor["contribution"] for factor in factors), "factors": factors}
 
 
 def score_course(course: dict, user: dict, weights: dict = None, env_context: dict = None) -> float:
-    return score_course_breakdown(course, user, weights, env_context)["total"]
+    if weights is None:
+        weights = DEFAULT_WEIGHTS_WITH_ENV if env_context is not None else DEFAULT_WEIGHTS
+    # 사용자별로 학습된 가중치가 오더라도 목적·동반자에 따른 조정은 그 위에 얹는다
+    weights = tune_weights(weights, user.get("purpose"))
+    weights = tune_for_companion(weights, user.get("companion"))
+
+    scores = component_scores(course, user, env_context)
+    return sum(scores[k] * weights[k] for k in weights)
 
 
 def filter_by_required_tags(courses: list, user: dict) -> list:
@@ -153,7 +135,9 @@ def filter_by_required_tags(courses: list, user: dict) -> list:
     user_tags = set(user.get("environment_tags", []))
     if not user_tags:
         return courses
-    return [c for c in courses if user_tags & set(c.get("tags", []))]
+    # 지형 데이터가 없는 곳에서 만든 코스(scenery_pending)는 풍경을 확인할 수 없다. 태그가 없다고
+    # 버리면 그 지역에선 추천이 0개가 되므로 남겨 두되, tag_match가 0이라 확인된 코스보다 뒤로 간다.
+    return [c for c in courses if c.get("scenery_pending") or user_tags & set(c.get("tags", []))]
 
 
 def recommend(courses: list, user: dict, top_n: int = 5, weights: dict = None, env_context_map: dict = None) -> list:

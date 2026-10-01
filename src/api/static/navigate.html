@@ -50,21 +50,13 @@
 
   .go{ width:100%; padding:12px; border-radius:10px; border:none; background:var(--accent); color:var(--accent-ink); font:inherit; font-weight:700; font-size:14px; cursor:pointer; }
   .go:disabled{ opacity:.55; cursor:default; }
+  .field input[type=text]{ width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:9px;
+    font-size:13px; font-family:inherit; box-sizing:border-box; background:#fff; }
   .hint{ font-size:11.5px; color:var(--muted); line-height:1.5; border-top:1px solid var(--line); padding-top:12px; }
 
   .stage{ display:flex; flex-direction:column; align-items:center; gap:14px; min-width:0; }
   .status{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted); min-height:18px; align-self:flex-start; }
   .status.live{ color:var(--accent); }
-  .candidate-list{ width:390px; max-width:100%; align-self:center; display:flex; flex-direction:column; gap:7px; }
-  .candidate-heading{ display:flex; justify-content:space-between; align-items:baseline; color:var(--muted); font-size:11px; font-weight:800; }
-  .candidate-heading strong{ color:var(--ink); font-family:"IBM Plex Mono",monospace; }
-  .candidate-items{ display:flex; flex-direction:column; gap:6px; }
-  .candidate-item{ display:grid; grid-template-columns:28px minmax(0,1fr) auto; align-items:center; gap:9px; width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); text-align:left; font:inherit; cursor:pointer; }
-  .candidate-item[aria-pressed="true"]{ border-color:var(--accent); background:var(--accent-soft); }
-  .candidate-rank{ color:var(--muted); font-family:"IBM Plex Mono",monospace; font-size:11px; }
-  .candidate-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; font-weight:700; }
-  .candidate-meta{ grid-column:2; color:var(--muted); font-size:10px; }
-  .candidate-score{ grid-column:3; grid-row:1 / span 2; color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:13px; font-weight:700; }
 
   /* ---- 폰 프레임: 실제 내비게이션 앱처럼 세로 화면으로 보여준다 ---- */
   .phone{
@@ -123,7 +115,7 @@
     position:absolute; left:0; right:0; bottom:0; z-index:1200;
     background:var(--surface); border-radius:20px 20px 0 0; padding:18px 18px 20px;
     box-shadow:0 -10px 30px -10px rgba(0,0,0,.25);
-    display:flex; flex-direction:column; gap:12px; max-height:72%; overflow-y:auto;
+    display:flex; flex-direction:column; gap:12px;
   }
   .route-sheet .name{ font-weight:800; font-size:16px; }
   .route-sheet .region{ color:var(--muted); font-size:12.5px; font-weight:500; margin-left:6px; }
@@ -132,15 +124,6 @@
   .route-sheet .stats .l{ font-size:10.5px; color:var(--muted); }
   .route-sheet .note{ font-size:11.5px; color:var(--muted); line-height:1.5; }
   .route-sheet .note b{ color:var(--ink); }
-  .score-breakdown{ border-top:1px solid var(--line); padding-top:10px; }
-  .score-breakdown summary{ cursor:pointer; font-size:12px; font-weight:800; color:var(--ink); }
-  .score-breakdown .formula{ margin:5px 0 10px; color:var(--muted); font-size:10.5px; }
-  .score-factor{ display:grid; grid-template-columns:1fr auto; gap:4px 10px; margin:9px 0; }
-  .score-factor-head{ display:flex; justify-content:space-between; gap:8px; font-size:11.5px; }
-  .score-factor-head strong{ font-family:"IBM Plex Mono",monospace; font-size:11px; }
-  .score-track{ grid-column:1 / -1; height:5px; background:var(--line); border-radius:4px; overflow:hidden; }
-  .score-fill{ height:100%; background:var(--accent); border-radius:4px; }
-  .score-factor-meta{ grid-column:1 / -1; color:var(--muted); font-size:10px; }
   .startbtn{
     width:100%; padding:14px; border-radius:12px; border:none; background:var(--navblue); color:#fff;
     font:inherit; font-weight:800; font-size:15px; cursor:pointer;
@@ -162,6 +145,21 @@
   .bottom-bar .eta{ font-family:"IBM Plex Mono",monospace; font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; }
   .bottom-bar .sub{ font-size:11px; color:#9FB0A6; margin-top:1px; font-variant-numeric:tabular-nums; }
 
+  .rate-card{ position:absolute; left:14px; right:14px; bottom:96px; z-index:6; background:#fff; border-radius:16px;
+    padding:14px 16px; box-shadow:0 8px 28px rgba(0,0,0,.22); text-align:center; }
+  .rate-q{ font-weight:800; font-size:15px; margin-bottom:6px; }
+  .stars{ display:flex; justify-content:center; gap:4px; }
+  .stars button{ border:0; background:none; font-size:30px; line-height:1; color:#d6d9df; cursor:pointer; padding:2px; }
+  .stars button.on{ color:#F5A623; }
+  .stars button:focus-visible{ outline:2px solid #1A6FE0; border-radius:6px; }
+  .rate-note{ font-size:12px; color:#6b7280; margin-top:6px; }
+  .taste{ margin-top:14px; max-width:600px; font-size:13px; }
+  .taste-head{ font-weight:800; margin-bottom:6px; }
+  .taste-head span{ font-weight:500; color:var(--muted); font-size:12px; }
+  .taste ol{ margin:0; padding-left:18px; display:grid; gap:3px; }
+  .taste .up{ color:#16794A; font-variant-numeric:tabular-nums; }
+  .taste .down{ color:#B03030; font-variant-numeric:tabular-nums; }
+  .taste-foot{ font-size:11.5px; color:var(--muted); margin:6px 0 0; }
   .arrived-badge{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1201;
     background:var(--ink); color:var(--paper); padding:16px 26px; border-radius:14px;
@@ -205,19 +203,23 @@
 
       <div class="field">
         <label>원하는 풍경</label>
-        <div class="chips" id="tagChips">
-          <button class="chip" data-tag="바다뷰">바다뷰</button>
-          <button class="chip" data-tag="숲길">숲길</button>
-          <button class="chip" data-tag="차없는길">차없는길</button>
-        </div>
+        <div class="chips" id="tagChips" aria-live="polite"></div>
+        <p class="hint" id="tagHint">풍경을 고르면 그 풍경을 실제로 지나는 코스만 추천합니다.</p>
       </div>
 
       <div class="field">
-        <label>왕복 / 편도</label>
+        <label>코스 형태</label>
         <div class="seg" id="routeSeg">
           <button data-v="roundtrip" class="on">왕복</button>
+          <button data-v="loop">순환</button>
           <button data-v="oneway">편도</button>
         </div>
+        <p class="hint">왕복은 갔던 길을 되짚고, 순환은 한 바퀴 돌아 제자리로 옵니다.</p>
+      </div>
+
+      <div class="field">
+        <label for="destInput">목적지 (선택)</label>
+        <input id="destInput" type="text" placeholder="예: 오동도, 여수 — 비워두면 조건으로 추천">
       </div>
 
       <div class="field">
@@ -231,7 +233,7 @@
       </div>
 
       <button class="go" id="goBtn">코스 추천받기</button>
-      <p class="hint">현위치에서 TMap 보행자 경로 후보를 만든 뒤 요청 거리와 가까워지도록 반경을 보정합니다. 위치와 통신 상황에 따라 코스 생성에 수 초 이상 걸릴 수 있습니다.</p>
+      <p class="hint">현위치 반경 5km 안에 코스가 있으면 즉시 매칭되고, 없으면(부산 선택 시) 서버가 그 자리에서 Tmap 보행자 경로 + Open Topo Data 고도 + OSM 태그로 코스를 생성합니다 — 실제로 10초 정도 걸립니다.</p>
     </div>
 
     <div class="stage">
@@ -269,11 +271,6 @@
             <div><div class="n" id="statSignal">—</div><div class="l">신호등</div></div>
             <div><div class="n" id="statScore">—</div><div class="l">매칭점수</div></div>
           </div>
-          <details class="score-breakdown" id="scoreBreakdown" open>
-            <summary>점수 산출 내역</summary>
-            <div class="formula">항목별 매칭률 × 가중치 = 총점 기여도</div>
-            <div id="scoreFactors"></div>
-          </details>
           <div class="note" id="routeNote"></div>
           <button class="startbtn" id="navBtn">📍 실제 위치로 안내 시작</button>
           <button class="simbtn" id="simBtn">시뮬레이션으로 미리보기</button>
@@ -289,14 +286,23 @@
         </div>
 
         <div class="arrived-badge" id="arrivedBadge" hidden>🏁 도착!</div>
-      </div>
 
-      <div class="candidate-list" id="candidateList" hidden>
-        <div class="candidate-heading"><span>생성 후보 비교</span><strong id="candidateCount">0개</strong></div>
-        <div class="candidate-items" id="candidateItems"></div>
+        <div class="rate-card" id="rateCard" hidden>
+          <div class="rate-q">이 코스 어땠나요?</div>
+          <div class="stars" id="stars">
+            <button data-r="1" aria-label="1점">★</button><button data-r="2" aria-label="2점">★</button><button data-r="3" aria-label="3점">★</button><button data-r="4" aria-label="4점">★</button><button data-r="5" aria-label="5점">★</button>
+          </div>
+          <div class="rate-note" id="rateNote">평가할수록 다음 추천이 내 취향에 맞춰집니다</div>
+        </div>
       </div>
 
       <div class="envbar" id="envbar" hidden></div>
+
+      <section class="taste" id="tastePanel" hidden>
+        <div class="taste-head">내 취향 <span id="tasteCount"></span></div>
+        <ol id="tasteList"></ol>
+        <p class="taste-foot">러닝 후 평가로 학습한 결과입니다. 숫자는 처음 기준보다 몇 % 더(덜) 중시하게 됐는지입니다.</p>
+      </section>
     </div>
   </div>
   <footer>추천 점수는 score.py 가중치 그대로 서버에서 계산 · 경로와 턴바이턴 안내: Tmap API 실제 응답 · 지도: MapLibre + OpenFreeMap(OSM) 3D · 음성: 브라우저 내장 합성</footer>
@@ -377,14 +383,12 @@ let voiceOn = true, spokenKey = null, simulatedNavigation = false;
 function speak(text, interrupt=false){
   if (!voiceOn) return;
   if (!window.speechSynthesis){
-    // 카카오톡 등 인앱 브라우저는 음성합성이 없는 경우가 많다 — 조용히 넘어가면 원인을 모른다
     document.getElementById('status').textContent = '이 브라우저는 음성 안내를 지원하지 않습니다. Chrome/Safari로 열어주세요.';
     return;
   }
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'ko-KR';
   utter.rate = 1.05;
-  // 'not-allowed'면 터치 없이 말하려다 막힌 것, 'synthesis-failed'/'language-unavailable'이면 한국어 음성 문제
   utter.onerror = (e) => {
     if (e.error === 'interrupted' || e.error === 'canceled') return;
     document.getElementById('status').textContent = `음성 안내 오류: ${e.error}`;
@@ -463,6 +467,11 @@ function drawCourse(course){
     attributionControl: { compact: true },
   });
 
+  new maplibregl.Marker({ color: '#16794A' }).setLngLat(coords[0]).addTo(map);
+  new maplibregl.Marker({ color: '#B03030' }).setLngLat(coords[coords.length-1]).addTo(map);
+  runnerOverlay = new maplibregl.Marker({ element: markerEl(RUNNER_ICON_URL, 26) })
+    .setLngLat(coords[0]).addTo(map);
+
   map.on('load', () => {
     map.addSource('route', {
       type: 'geojson',
@@ -488,10 +497,6 @@ function drawCourse(course){
       },
     });
 
-    new maplibregl.Marker({ color: '#16794A' }).setLngLat(coords[0]).addTo(map);
-    new maplibregl.Marker({ color: '#B03030' }).setLngLat(coords[coords.length-1]).addTo(map);
-    runnerOverlay = new maplibregl.Marker({ element: markerEl(RUNNER_ICON_URL, 26) })
-      .setLngLat(coords[0]).addTo(map);
 
     const bounds = coords.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
     map.fitBounds(bounds, { padding: 46, duration: 0 });
@@ -504,7 +509,7 @@ function recenterOnRunner(){
 
 function fmt(n, d=1){ return Number(n).toFixed(d); }
 
-function showRouteSheet(course, score, scoreBreakdown=[]){
+function showRouteSheet(course, score){
   document.getElementById('routeSheet').hidden = false;
   document.getElementById('bottomBar').hidden = true;
   document.getElementById('compassBtns').hidden = true;
@@ -517,16 +522,6 @@ function showRouteSheet(course, score, scoreBreakdown=[]){
   document.getElementById('statElev').textContent = Math.round(course.elevation_gain_m);
   document.getElementById('statSignal').textContent = course.traffic_signal_count;
   document.getElementById('statScore').textContent = Math.round(score*100);
-  document.getElementById('scoreFactors').innerHTML = scoreBreakdown.map(factor => {
-    const match = Math.max(0, Math.min(1, factor.score));
-    const weight = Math.max(0, factor.weight);
-    const contribution = Math.max(0, factor.contribution);
-    return `<div class="score-factor">
-      <div class="score-factor-head"><span>${factor.label}</span><strong>${Math.round(match*100)}%</strong></div>
-      <div class="score-track"><div class="score-fill" style="width:${match*100}%"></div></div>
-      <div class="score-factor-meta">가중치 ${Math.round(weight*100)}% · 총점 기여 +${(contribution*100).toFixed(1)}점</div>
-    </div>`;
-  }).join('');
 
   const notes = [];
   if (course._source === 'generated') notes.push(`실시간 생성됨 · 다음부터 이 지역은 즉시 매칭`);
@@ -534,62 +529,18 @@ function showRouteSheet(course, score, scoreBreakdown=[]){
   document.getElementById('routeNote').textContent = notes.join(' · ');
 }
 
-function selectRecommendation(index){
-  const results = window._recommendationResults || [];
-  const result = results[index];
-  if (!result) return;
-  clearInterval(animTimer);
-  if (watchId !== null){ navigator.geolocation.clearWatch(watchId); watchId = null; }
-  window._selectedRecommendationIndex = index;
-  window._currentCourse = result.course;
-  window._currentScore = result.score;
-  window._currentScoreBreakdown = result.score_breakdown || [];
-  drawCourse(result.course);
-  showRouteSheet(result.course, result.score, window._currentScoreBreakdown);
-  renderCandidateList();
-}
-
-function renderCandidateList(){
-  const results = window._recommendationResults || [];
-  const list = document.getElementById('candidateList');
-  list.hidden = results.length < 2;
-  document.getElementById('candidateCount').textContent = `${results.length}개`;
-  document.getElementById('candidateItems').innerHTML = results.map((result, index) => {
-    const course = result.course;
-    const separation = result.score_breakdown?.find(factor => factor.key === 'route_diversity');
-    const detail = `${fmt(course.distance_km)}km · 분리도 ${separation ? Math.round(separation.score*100)+'%' : '—'}`;
-    const selected = index === window._selectedRecommendationIndex;
-    return `<button class="candidate-item" type="button" data-candidate-index="${index}" aria-pressed="${selected}">
-      <span class="candidate-rank">${String(index+1).padStart(2,'0')}</span>
-      <span class="candidate-name">${course.name}</span>
-      <span class="candidate-meta">${detail}</span>
-      <span class="candidate-score">${Math.round(result.score*100)}</span>
-    </button>`;
-  }).join('');
-  document.querySelectorAll('[data-candidate-index]').forEach(button => {
-    button.addEventListener('click', () => selectRecommendation(Number(button.dataset.candidateIndex)));
-  });
-}
-
-// GPS 좌표가 경로 위 어디쯤인지(누적거리, 경로 이탈거리) 찾는다 — 턴바이턴 매칭 로직은
-// 시뮬레이션과 실제 GPS 모드가 완전히 동일하게 쓴다. 다른 건 "위치를 어디서 받아오느냐"뿐이다.
-//
-// 경로 전체에서 "가장 가까운 점"을 고르면 왕복·순환 코스가 깨진다. 출발점과 도착점이
-// 같은 자리라 출발점에 서 있어도 도착 직전 지점이 더 가깝게 잡히면 곧바로 "도착"이 뜨고,
-// 반대로 도착할 때 출발점으로 잡히면 영영 도착하지 않는다. 가는 길과 오는 길이 같은
-// 도로인 구간도 마찬가지다. 그래서 서버 step_position.py가 안내 위치를 정할 때와 같은
-// 원리로, 직전 진행 위치 바로 앞 구간에서만 현재 위치를 찾고 진행 거리는 뒤로 가지 않게 한다.
+// 경로 전체에서 가장 가까운 점을 고르면 왕복·순환 코스의 출발/도착이 겹칠 때 진행률이
+// 마지막 지점으로 점프할 수 있다. 직전 진행 위치 바로 앞에서만 선분 투영으로 매칭한다.
 const TRACK = {
-  FORWARD_M: 300,         // 위치 한 번 갱신에 이만큼 앞까지만 찾는다
-  ON_TRACK_M: 40,         // 경로에서 이보다 멀면 이탈로 보고 진행을 멈춘다
-  SAME_PASS_SLACK_M: 12,  // 가는 길·오는 길이 나란히 붙어 있으면 먼저 지나는 쪽을 고른다
-  MAX_ACCURACY_M: 50,     // GPS 오차가 이보다 크면(수신 직후 기지국 위치 등) 진행 판정에 쓰지 않는다
-  REJOIN_AFTER_FIXES: 5,  // 이탈이 이만큼 이어지면 더 앞쪽에서 다시 합류 지점을 찾는다(샛길)
-  REJOIN_MAX_M: 1500,     // 그때도 이만큼, 그리고 코스 절반까지만 건너뛴다 — 출발점에서 도착점으로 튀지 않게
-  ARRIVE_M: 20,           // GPS 오차를 감안한 도착 판정 거리
+  FORWARD_M: 300,
+  ON_TRACK_M: 40,
+  SAME_PASS_SLACK_M: 12,
+  MAX_ACCURACY_M: 50,
+  REJOIN_AFTER_FIXES: 5,
+  REJOIN_MAX_M: 1500,
+  ARRIVE_M: 20,
 };
 
-// 점 p를 선분 a-b의 [tMin, tMax] 범위에 투영. 짧은 구간이라 평면 근사로 충분하다.
 function projectOntoSegment(p, a, b, tMin, tMax){
   const kx = 111320 * Math.cos(p[0] * Math.PI / 180), ky = 111320;
   const ax = (a[1] - p[1]) * kx, ay = (a[0] - p[0]) * ky;
@@ -603,8 +554,6 @@ function createProgressTracker(path, cum){
   const total = cum[cum.length - 1];
   let progressM = 0, offStreak = 0;
 
-  // 누적거리 [fromM, toM] 구간에서만 현재 위치에 맞는 지점을 찾는다. 비슷하게 가까운 후보가
-  // 여러 번 나오면(같은 길을 갔다 오는 경우) 경로상 먼저 지나는 쪽의 가장 가까운 점을 고른다.
   function match(latlng, fromM, toM){
     const cands = [];
     for (let i = 0; i < path.length - 1; i++){
@@ -643,6 +592,7 @@ function createProgressTracker(path, cum){
 }
 
 function enterNavMode(){
+  document.getElementById('rateCard').hidden = true;
   clearInterval(animTimer);
   if (watchId !== null){ navigator.geolocation.clearWatch(watchId); watchId = null; }
   document.getElementById('routeSheet').hidden = true;
@@ -657,9 +607,16 @@ function enterNavMode(){
 let lastNavPos = null;
 
 function updateProgressUI(lat, lng, distanceSoFarM, totalM, locatedSteps, paceMinPerKm){
-  if (!runnerOverlay || !map) return false;
-  runnerOverlay.setLngLat([lng, lat]);
+  // 지도 타일이 아직 안 떴어도(느린 폰 네트워크 등) 안내·남은 거리·도착·음성은 계속 돌아야 한다.
+  // 예전엔 여기서 바로 return해서, 지도가 늦으면 내비게이션 전체가 조용히 멈췄다.
+  if (runnerOverlay) runnerOverlay.setLngLat([lng, lat]);
+  if (map) moveNavCamera(lat, lng);
 
+  updateTurnBanner(locatedSteps, distanceSoFarM);
+  return updateEtaAndArrival(distanceSoFarM, totalM, paceMinPerKm);
+}
+
+function moveNavCamera(lat, lng){
   // 내비게이션 카메라: 진행 방향이 항상 화면 위쪽을 향하도록 지도를 돌린다(heading-up).
   // 지도를 북쪽 고정으로 두면 "좌회전"이 화면에서 오른쪽으로 보이는 일이 생긴다.
   const camera = { center: [lng, lat], pitch: NAV_PITCH, zoom: NAV_ZOOM, duration: 380 };
@@ -668,21 +625,22 @@ function updateProgressUI(lat, lng, distanceSoFarM, totalM, locatedSteps, paceMi
   }
   if (!lastNavPos || haversine(lastNavPos, [lat, lng]) > 1) lastNavPos = [lat, lng];
   map.easeTo(camera);
+}
 
-  updateTurnBanner(locatedSteps, distanceSoFarM);
+function updateEtaAndArrival(distanceSoFarM, totalM, paceMinPerKm){
 
   const remainKm = Math.max(0, (totalM - distanceSoFarM) / 1000);
   document.getElementById('etaTime').textContent = fmtKoreanTime(new Date(Date.now() + remainKm * paceMinPerKm * 60000));
   document.getElementById('etaSub').textContent = `${fmt(remainKm)}km · ${Math.max(0, Math.round(remainKm * paceMinPerKm))}분 남음`;
 
-  // 시뮬레이션은 정확히 끝까지 가지만, GPS는 오차가 있어 끝점 5m 안으로 들어오지 못할 수 있다
   const arriveM = simulatedNavigation ? 5 : TRACK.ARRIVE_M;
   if (distanceSoFarM >= totalM - arriveM){
     document.getElementById('turnPrimary').hidden = true;
     document.getElementById('turnSecondary').hidden = true;
     document.getElementById('arrivedBadge').hidden = false;
     speak('목적지에 도착했습니다. 수고하셨습니다.', true);
-    document.getElementById('status').textContent = '도착! 실제 서비스라면 여기서 평점·완주여부 피드백을 수집합니다.';
+    showRateCard();
+    document.getElementById('status').textContent = '도착! 아래에서 코스를 평가하면 다음 추천에 반영됩니다.';
     document.getElementById('status').classList.remove('live');
     return true;
   }
@@ -697,10 +655,10 @@ function startNavigationSimulated(course){
   const cum = cumulativeDistances(pathArr);
   const total = cum[cum.length-1];
   const locatedSteps = locateStepsOnPath(course.steps, pathArr, cum);
-  const durationMs = 10000;
+  const durationMs = Math.max(16000, locatedSteps.length * 1500);
   const t0 = performance.now();
 
-  document.getElementById('status').textContent = '빠른 시뮬레이션 재생 중 (약 10초 · 실제 위치 아님)';
+  document.getElementById('status').textContent = '시뮬레이션 재생 중 (실제 위치 아님 — 페이스를 데모용으로 압축, 안내 문구는 Tmap 실제 응답)';
   document.getElementById('status').classList.add('live');
   updateTurnBanner(locatedSteps, 0);
 
@@ -736,10 +694,9 @@ function startNavigationGPS(course){
     (geo) => {
       gotFirstFix = true;
       const { latitude: lat, longitude: lng, speed, accuracy } = geo.coords;
-      const pace = speed && speed > 0.2 ? (1000 / speed) / 60 : PACE_MIN_PER_KM; // 실측 속도가 있으면 그걸로 ETA 계산
+      const pace = speed && speed > 0.2 ? (1000 / speed) / 60 : PACE_MIN_PER_KM;
       const status = document.getElementById('status');
 
-      // 수신 직후에는 기지국·와이파이 기준의 부정확한 위치가 먼저 온다. 마커만 옮기고 진행은 판정하지 않는다.
       if (accuracy > TRACK.MAX_ACCURACY_M){
         updateProgressUI(lat, lng, tracker.progressM, total, locatedSteps, pace);
         status.textContent = `GPS 신호를 잡는 중 (오차 ±${Math.round(accuracy)}m) — 정확해지면 안내를 이어갑니다`;
@@ -751,7 +708,7 @@ function startNavigationGPS(course){
       if (arrived){
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
-        return;  // updateProgressUI가 쓴 "도착!" 문구를 덮어쓰지 않는다
+        return;
       }
       if (onTrack) status.textContent = '실제 위치로 안내 중';
       else if (progressM === 0) status.textContent =
@@ -780,9 +737,7 @@ function startNavigationGPS(course){
   }, 12000);
 }
 
-// 모바일 브라우저(특히 iOS Safari)는 사용자가 누른 그 순간(click 핸들러 안)에 한 번 말해야
-// 이후 타이머·GPS 콜백에서 부르는 음성을 허용한다. 안내는 전부 콜백에서 나오므로 여기서 한 번 열어 둔다.
-// enterNavMode()가 speechSynthesis.cancel()을 부르므로 반드시 start 함수 "뒤"에 말한다.
+// 모바일 브라우저는 사용자 click 핸들러 안에서 시작된 음성만 이후 GPS 콜백에서도 허용할 수 있다.
 document.getElementById('navBtn').addEventListener('click', () => {
   startNavigationGPS(window._currentCourse);
   speak('안내를 시작합니다');
@@ -806,7 +761,7 @@ document.getElementById('voiceBtn').addEventListener('click', (e) => {
 document.getElementById('exitBtn').addEventListener('click', () => {
   clearInterval(animTimer);
   if (watchId !== null){ navigator.geolocation.clearWatch(watchId); watchId = null; }
-  if (window._currentCourse) showRouteSheet(window._currentCourse, window._currentScore, window._currentScoreBreakdown);
+  if (window._currentCourse) showRouteSheet(window._currentCourse, window._currentScore);
   document.getElementById('status').textContent = '내비게이션을 종료했습니다.';
   document.getElementById('status').classList.remove('live');
 });
@@ -818,7 +773,25 @@ document.querySelectorAll('#elevSeg button').forEach(b => b.addEventListener('cl
   document.querySelectorAll('#elevSeg button').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
 }));
-document.querySelectorAll('#tagChips .chip').forEach(b => b.addEventListener('click', () => b.classList.toggle('on')));
+// 풍경 선택지는 서버가 내려준다 — 실제로 그 풍경을 지나는 코스가 있는 것만, 붙는 기준과 함께.
+// 화면에 고정해 두면 코스가 없는 풍경도 고를 수 있게 되어 결과 0개가 나온다.
+const DEFAULT_TAG_HINT = document.getElementById('tagHint').textContent;
+fetch('/onboarding/scenery').then(r => r.json()).then(({ scenery }) => {
+  const box = document.getElementById('tagChips');
+  scenery.forEach(option => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.dataset.tag = option.value;
+    chip.textContent = `${option.value} ${option.course_count}`;
+    chip.title = option.description;
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('on');
+      document.getElementById('tagHint').textContent =
+        chip.classList.contains('on') ? `${option.value}: ${option.description}` : DEFAULT_TAG_HINT;
+    });
+    box.appendChild(chip);
+  });
+}).catch(() => { document.getElementById('tagHint').textContent = '풍경 목록을 불러오지 못했습니다.'; });
 document.querySelectorAll('#routeSeg button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('#routeSeg button').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
@@ -832,8 +805,6 @@ document.querySelectorAll('#locBtns button').forEach(b => b.addEventListener('cl
 document.getElementById('currentLocationBtn').addEventListener('click', () => {
   const button = document.getElementById('currentLocationBtn');
   const status = document.getElementById('status');
-  // http://192.168.x.x:8000 처럼 HTTPS가 아닌 주소면 브라우저가 권한 창도 없이 거부한다(error.code 1).
-  // 그대로 두면 '권한이 거부됐습니다'로 보여 원인을 잘못 짚게 되므로 먼저 걸러서 알려준다.
   if (!window.isSecureContext){
     status.textContent = '위치 정보는 HTTPS 주소에서만 쓸 수 있습니다. http://IP:8000 대신 HTTPS 터널(cloudflared·ngrok) 주소로 접속하세요.';
     return;
@@ -842,7 +813,6 @@ document.getElementById('currentLocationBtn').addEventListener('click', () => {
     status.textContent = '이 브라우저에서 위치 정보를 사용할 수 없습니다. 시뮬레이션 위치를 선택해주세요.';
     return;
   }
-
   button.disabled = true;
   button.textContent = '위치 확인 중…';
   status.textContent = 'GPS로 실제 출발 위치를 확인하는 중…';
@@ -875,22 +845,24 @@ document.getElementById('goBtn').addEventListener('click', async () => {
   goBtn.disabled = true;
   clearInterval(animTimer);
   status.classList.remove('live');
-  status.textContent = '서버에 요청 중… 여러 경로를 실제 길이로 확인하고 요청 거리와 가깝게 보정합니다.';
+  status.textContent = '서버에 요청 중… (현위치 근처에 없으면 실시간 생성이라 최대 15초 정도 걸릴 수 있습니다)';
 
   const tags = [...document.querySelectorAll('#tagChips .chip.on')].map(b => b.dataset.tag);
   const elev = document.querySelector('#elevSeg button.on').dataset.v;
   const routeType = document.querySelector('#routeSeg button.on').dataset.v;
+  const destination = document.getElementById('destInput').value.trim();
   const payload = {
     preferred_distance_km: parseFloat(document.getElementById('dist').value),
     elevation_preference: elev,
     environment_tags: tags,
     route_type: routeType,
+    user_id: USER_ID,
+    ...(destination ? { destination } : {}),
     current_lat: selectedLoc.lat,
     current_lng: selectedLoc.lng,
     max_distance_km: 5,
     use_live_environment: true,
-    top_n: 5,
-    preview_candidates: true,
+    top_n: 1,
   };
 
   const t0 = performance.now();
@@ -911,17 +883,14 @@ document.getElementById('goBtn').addEventListener('click', async () => {
       goBtn.disabled = false;
       return;
     }
-    body.results.forEach(result => { result.course._source = body.source; });
-    window._recommendationResults = body.results;
-    window._selectedRecommendationIndex = 0;
-    const { course, score, score_breakdown: scoreBreakdown=[] } = body.results[0];
+    const { course, score } = body.results[0];
+    course._source = body.source;
     window._currentCourse = course;
     window._currentScore = score;
-    window._currentScoreBreakdown = scoreBreakdown;
-    status.textContent = `${body.source === 'generated' ? '실시간 생성 완료' : 'DB 매칭 완료'} · ${elapsed}초`;
+    const sourceLabel = { generated: '실시간 생성 완료', destination: '목적지 경로 생성 완료', db: 'DB 매칭 완료' };
+    status.textContent = `${sourceLabel[body.source] || 'DB 매칭 완료'} · ${elapsed}초`;
     drawCourse(course);
-    showRouteSheet(course, score, scoreBreakdown);
-    renderCandidateList();
+    showRouteSheet(course, score);
   } catch(e){
     status.textContent = '서버 연결에 실패했습니다: ' + e.message;
   } finally {
@@ -930,6 +899,67 @@ document.getElementById('goBtn').addEventListener('click', async () => {
 });
 
 // 코스를 받기 전에는 지도를 만들지 않는다 — drawCourse가 경로에 맞춰 새로 띄운다.
+
+// ── 개인화: 러닝 후 만족도로 이 사람의 가중치를 학습한다 ──
+// 로그인이 없는 데모라 브라우저마다 익명 id를 만들어 기억한다. 실제 앱에선 계정 id를 쓴다.
+const USER_ID = (() => {
+  try {
+    let id = localStorage.getItem('runner_user_id');
+    if (!id){ id = 'demo-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('runner_user_id', id); }
+    return id;
+  } catch (e) { return 'demo-anon'; }
+})();
+
+function showRateCard(){
+  const card = document.getElementById('rateCard');
+  card.hidden = false;
+  card.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+  document.getElementById('rateNote').textContent = '평가할수록 다음 추천이 내 취향에 맞춰집니다';
+}
+
+document.getElementById('stars').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-r]');
+  const course = window._currentCourse;
+  if (!btn || !course) return;
+  const rating = Number(btn.dataset.r);
+  document.querySelectorAll('#stars button').forEach(b => b.classList.toggle('on', Number(b.dataset.r) <= rating));
+  const note = document.getElementById('rateNote');
+  try {
+    const res = await fetch('/feedback', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: USER_ID, course_id: course.id, rating }),
+    });
+    const body = await res.json();
+    if (!res.ok) { note.textContent = body.detail || '평가를 저장하지 못했습니다'; return; }
+    const top = body.explanation[0];
+    // 평가가 쌓여 뚜렷한 취향이 생겼을 때만 "~를 중시한다"고 말한다. 애매하면 단정하지 않는다.
+    note.textContent = rating >= 4
+      ? (top.preference >= 0.1 ? `반영했습니다 · "${top.label}"을(를) 중시하시는 것 같아요` : '반영했습니다 · 이런 코스를 더 추천할게요')
+      : '반영했습니다 · 다음 추천에서 이런 코스는 덜 나옵니다';
+    renderTaste(body);
+  } catch (err) {
+    note.textContent = '서버에 연결하지 못했습니다';
+  }
+});
+
+function renderTaste(profile){
+  if (!profile || !profile.n_feedback) return;
+  document.getElementById('tastePanel').hidden = false;
+  document.getElementById('tasteCount').textContent = `· 평가 ${profile.n_feedback}회`;
+  const list = document.getElementById('tasteList');
+  list.innerHTML = '';
+  profile.explanation.forEach(row => {
+    const li = document.createElement('li');
+    const delta = document.createElement('span');
+    const pct = Math.round((Math.exp(row.preference) - 1) * 100);  // 기본 대비 몇 % 더/덜 중시
+    delta.className = pct >= 3 ? 'up' : (pct <= -3 ? 'down' : '');
+    delta.textContent = Math.abs(pct) < 3 ? ' · 변화 없음' : ` ${pct > 0 ? '+' : ''}${pct}%`;
+    li.append(row.label, delta);
+    list.appendChild(li);
+  });
+}
+
+fetch(`/profile/${encodeURIComponent(USER_ID)}`).then(r => r.ok ? r.json() : null).then(renderTaste).catch(() => {});
 </script>
 </body>
 </html>

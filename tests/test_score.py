@@ -4,7 +4,7 @@ import os
 import pytest
 
 from src.recommend.nl_keywords import extract_tags
-from src.recommend.score import distance_match, recommend, score_course, score_course_breakdown, signal_free_match
+from src.recommend.score import distance_match, recommend, score_course, signal_free_match
 
 SAMPLE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "courses.sample.json")
 
@@ -87,17 +87,18 @@ def test_distance_match_penalizes_shorter_courses():
     assert 0 < far < close < 1.0
 
 
-def test_generated_roundtrip_distance_score_prefers_target_length():
+def test_loop_distance_score_prefers_target_length():
     user = {"preferred_distance_km": 5.0}
-    exact = {"source": "live_generated", "route_type": "roundtrip", "distance_km": 5.0}
-    over = {"source": "live_generated", "route_type": "roundtrip", "distance_km": 5.5}
+    # 순환은 잘라낼 수 없으니 목표보다 길어도 감점한다
+    exact = {"source": "live_generated", "route_type": "loop", "distance_km": 5.0}
+    over = {"source": "live_generated", "route_type": "loop", "distance_km": 5.5}
 
     assert distance_match(exact, user) > distance_match(over, user)
 
 
 def test_generated_loop_ranking_changes_with_elevation_preference():
     flat = {
-        "id": "flat-loop", "source": "live_generated", "route_type": "roundtrip",
+        "id": "flat-loop", "source": "live_generated", "route_type": "loop",
         "distance_km": 5.0, "elevation_gain_m": 20, "safety_score": 0.7,
         "traffic_signal_count": 0, "tags": [],
     }
@@ -112,48 +113,3 @@ def test_generated_loop_ranking_changes_with_elevation_preference():
 
     assert low_top["id"] == "flat-loop"
     assert high_top["id"] == "hilly-loop"
-
-
-def test_score_breakdown_contributions_sum_to_total():
-    course = {
-        "id": "scored-course", "distance_km": 5.0, "elevation_gain_m": 40,
-        "safety_score": 0.8, "traffic_signal_count": 2, "tags": ["숲길"],
-    }
-    user = {
-        "preferred_distance_km": 5.0, "elevation_preference": "low",
-        "environment_tags": {"숲길"},
-    }
-
-    breakdown = score_course_breakdown(course, user)
-
-    assert breakdown["total"] == pytest.approx(score_course(course, user))
-    assert sum(factor["contribution"] for factor in breakdown["factors"]) == pytest.approx(breakdown["total"])
-    assert {factor["key"] for factor in breakdown["factors"]} == {
-        "distance", "elevation", "safety", "signal_free", "tag_match", "time_fit",
-    }
-
-
-def test_generated_loop_ranking_prefers_less_overlapping_return():
-    base = {
-        "source": "live_generated", "route_type": "roundtrip", "distance_km": 5.0,
-        "elevation_gain_m": 40, "safety_score": 0.7, "traffic_signal_count": 0, "tags": [],
-    }
-    retraced = {
-        **base, "id": "retraced", "route_overlap_ratio": 0.95,
-        "distance_km": 5.0, "elevation_gain_m": 60, "safety_score": 1.0,
-    }
-    separate = {
-        **base, "id": "separate", "route_overlap_ratio": 0.1,
-        "distance_km": 4.0, "elevation_gain_m": 20, "safety_score": 0.5,
-    }
-    user = {"preferred_distance_km": 5.0, "environment_tags": set()}
-
-    ranked = recommend([retraced, separate], user, top_n=2)
-    breakdown = score_course_breakdown(separate, user)
-
-    assert ranked[0][0]["id"] == "separate"
-    assert next(f for f in breakdown["factors"] if f["key"] == "route_diversity")["score"] == pytest.approx(0.9)
-    factors = {factor["key"]: factor for factor in breakdown["factors"]}
-    assert factors["route_diversity"]["weight"] == pytest.approx(0.25)
-    assert 0.25 < factors["distance"]["weight"] < 0.4
-    assert sum(f["contribution"] for f in breakdown["factors"]) == pytest.approx(breakdown["total"])
