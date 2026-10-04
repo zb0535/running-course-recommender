@@ -908,6 +908,8 @@ document.getElementById('goBtn').addEventListener('click', async () => {
     elevation_preference: elev,
     environment_tags: tags,
     route_type: routeType,
+    // 검증 주소에서만 용봉동 GraphML Loop를 요청한다. 일반 사용자는 기존 Tmap 엔진을 그대로 쓴다.
+    ...(GRAPH_DEBUG && routeType === 'loop' ? { loop_engine: 'graphml' } : {}),
     user_id: USER_ID,
     ...(destination ? { destination } : {}),
     current_lat: selectedLoc.lat,
