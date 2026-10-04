@@ -64,7 +64,8 @@ def resolve_target_distance_km(user: dict):
     if user.get("preferred_distance_km"):
         target = user["preferred_distance_km"]
     elif user.get("preferred_time_min"):
-        target = round(user["preferred_time_min"] / resolve_pace(user), 2)
+        # 시간으로 고른 경우에만 그 사람의 "길었다/짧았다" 평가를 반영한다. 거리를 직접 고른 건 그대로 따른다
+        target = round(user["preferred_time_min"] / resolve_pace(user) * user.get("distance_scale", 1.0), 2)
     else:
         return None
     cap = companion_limits(user.get("companion"))["max_distance_km"]
@@ -81,10 +82,11 @@ def elevation_target_m(user: dict) -> float:
     from .vectorize import ELEVATION_PREFERENCE_TARGET_M
 
     target = PURPOSE_ELEVATION_TARGET_M.get(user.get("purpose"))
-    if target is not None:
-        return target
-    pref = user.get("elevation_preference") or "medium"
-    return ELEVATION_PREFERENCE_TARGET_M.get(pref, ELEVATION_PREFERENCE_TARGET_M["medium"])
+    if target is None:
+        pref = user.get("elevation_preference") or "medium"
+        target = ELEVATION_PREFERENCE_TARGET_M.get(pref, ELEVATION_PREFERENCE_TARGET_M["medium"])
+    # 같은 "보통"이라도 사람마다 다르다. 러닝 후 "힘들었다/평탄했다"는 답으로 그 사람의 기준을 맞춘다
+    return target * user.get("elevation_scale", 1.0)
 
 
 def tune_weights(weights: dict, purpose: str) -> dict:

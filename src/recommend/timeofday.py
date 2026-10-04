@@ -31,6 +31,10 @@ def time_fit_match(course: dict, user: dict) -> float:
 
     green = course.get("green_ratio", 0.5)
 
+    if period == "night" and course.get("secluded_ratio") is not None:
+        # 실시간으로 만든 코스는 길마다 '밤에 사람이 있는 길인가'를 재 두었다. 그걸 그대로 쓴다
+        return round(max(0.0, min(1.0, 0.6 * (1 - course["secluded_ratio"]) + 0.4 * course.get("lively_ratio", 0))), 3)
+
     if period == "night":
         # 인적 드문 길을 피한다. 신호등이 있다는 건 사람과 차가 다니는 길이라는 뜻이다.
         signals_per_km = course.get("traffic_signal_count", 0) / max(course.get("distance_km", 0), 0.1)

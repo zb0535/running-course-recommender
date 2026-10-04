@@ -17,6 +17,11 @@
 
 라벨된 학습 데이터 없이 사용자 한 명의 평가만으로 동작하고(콜드 스타트는 기본 가중치),
 어떤 요소를 왜 중시하게 됐는지 설명할 수 있다.
+
+별점 하나로는 "무엇이" 좋았고 나빴는지 알 수 없어서 위 방식은 다른 코스와의 차이로 추정한다.
+그래서 항목별 질문도 받는다(FEEDBACK_QUESTIONS): 거리·오르막·멈춤·풍경·안심. 답은 추정이 아니라
+그 항목에 대한 직접 증거라, 해당 항목의 가중치만 바로 고친다(learn_aspects). "힘들었다/평탄했다",
+"길었다/짧았다"처럼 방향이 있는 답은 가중치가 아니라 목표값 자체를 옮긴다.
 """
 import json
 import math
@@ -43,7 +48,114 @@ FACTOR_LABELS = {
     "environment": "날씨가 좋은 코스",
 }
 
+# 러닝 후 항목별 질문. 앱이 문항을 하드코딩하지 않도록 서버가 내려준다 (GET /onboarding/feedback).
+# 각 답: (값, 보여줄 말, 중요도 변화, 방향)
+#   중요도 변화: 불만(+1)은 그 항목이 이 사람에게 중요하다는 강한 증거, 칭찬(+0.5)은 약한 증거,
+#               "보통"(-0.25)은 별로 신경 쓰지 않았다는 증거. "딱 좋았다"는 목표가 맞았다는 뜻이라 0.
+#   방향: 목표값을 올릴지(+1) 내릴지(-1). 오르막과 거리에만 있다.
+FEEDBACK_QUESTIONS = [
+    {"key": "distance", "factor": "distance", "question": "거리는 어땠나요?", "options": [
+        ("short", "짧았어요", 1.0, +1), ("good", "딱 좋았어요", 0.0, 0), ("long", "길었어요", 1.0, -1)]},
+    {"key": "elevation", "factor": "elevation", "question": "오르막은 어땠나요?", "options": [
+        ("flat", "너무 평탄했어요", 1.0, +1), ("good", "적당했어요", 0.0, 0), ("hard", "힘들었어요", 1.0, -1)]},
+    {"key": "stops", "factor": "signal_free", "question": "신호등이나 횡단보도에서 자주 멈췄나요?", "options": [
+        ("few", "거의 안 멈췄어요", 0.5, 0), ("ok", "보통이었어요", -0.25, 0), ("many", "자주 멈췄어요", 1.0, 0)]},
+    {"key": "scenery", "factor": "tag_match", "question": "풍경은 어땠나요?", "options": [
+        ("good", "좋았어요", 0.5, 0), ("ok", "보통이었어요", -0.25, 0), ("bad", "별로였어요", 1.0, 0)]},
+    {"key": "safety", "factor": "safety", "question": "달리는 동안 안심됐나요?", "options": [
+        ("safe", "안심됐어요", 0.5, 0), ("ok", "보통이었어요", -0.25, 0), ("unsafe", "불안했어요", 1.0, 0)]},
+]
+_ANSWERS = {q["key"]: {value: (q["factor"], importance, direction) for value, _, importance, direction in q["options"]}
+            for q in FEEDBACK_QUESTIONS}
+ASPECT_RATE = 0.5              # 항목별 답의 학습률 = 별점 학습률 × 이 값
+ELEVATION_STEP = 1.15          # "힘들었다/평탄했다" 한 번에 오르막 목표를 이만큼 줄이거나 늘린다
+ELEVATION_SCALE_RANGE = (0.5, 1.8)
+DISTANCE_STEP = 1.07           # "길었다/짧았다" 한 번에 (시간으로 고른) 목표 거리를 이만큼 줄이거나 늘린다
+DISTANCE_SCALE_RANGE = (0.7, 1.4)
+
 _lock = threading.Lock()
+
+
+def feedback_questions() -> list:
+    return [{"key": q["key"], "question": q["question"],
+             "options": [{"value": value, "label": label} for value, label, _, _ in q["options"]]}
+            for q in FEEDBACK_QUESTIONS]
+
+
+def invalid_aspects(aspects: dict) -> list:
+    """문항에 없는 키나 값."""
+    return [f"{key}={value}" for key, value in (aspects or {}).items() if value not in _ANSWERS.get(key, {})]
+
+
+def learn_aspects(profile: dict, aspects: dict) -> dict:
+    """항목별 답으로 그 항목의 가중치와 목표값을 고친다. n_feedback은 올리지 않는다(별점 쪽에서 센다)."""
+    if not aspects:
+        return profile
+    eta = learning_rate(profile["n_feedback"]) * ASPECT_RATE
+    weights = dict(profile["weights"])
+    log = profile.setdefault("aspect_log", {})
+    for key, value in aspects.items():
+        factor, importance, direction = _ANSWERS[key][value]
+        if factor in weights:
+            weights[factor] *= math.exp(eta * importance)
+        if direction and key == "elevation":
+            low, high = ELEVATION_SCALE_RANGE
+            scale = profile.get("elevation_scale", 1.0) * ELEVATION_STEP ** direction
+            profile["elevation_scale"] = round(min(max(scale, low), high), 3)
+        if direction and key == "distance":
+            low, high = DISTANCE_SCALE_RANGE
+            scale = profile.get("distance_scale", 1.0) * DISTANCE_STEP ** direction
+            profile["distance_scale"] = round(min(max(scale, low), high), 3)
+        counts = log.setdefault(key, {})
+        counts[value] = counts.get(value, 0) + 1
+    profile["weights"] = _normalize_bounded(weights)
+    return profile
+
+
+def answers_view(profile: dict) -> list:
+    """지금까지 항목별로 뭐라고 답했는지 — 문항과 보기 그대로, 횟수와 함께."""
+    log = profile.get("aspect_log", {})
+    return [{"key": q["key"], "question": q["question"],
+             "answers": [{"value": value, "label": label, "count": log.get(q["key"], {}).get(value, 0)}
+                         for value, label, _, _ in q["options"]]}
+            for q in FEEDBACK_QUESTIONS]
+
+
+def answer_labels(aspects: dict) -> list:
+    """{"stops": "many"} → ["자주 멈췄어요"] (이력을 사람이 읽을 수 있게)."""
+    labels = {q["key"]: {value: label for value, label, _, _ in q["options"]} for q in FEEDBACK_QUESTIONS}
+    return [labels[key][value] for key, value in (aspects or {}).items() if value in labels.get(key, {})]
+
+
+def taste_summary(profile: dict) -> list:
+    """이 사람의 취향을 사용자에게 보여줄 문장으로. 답한 내용에 근거가 있는 것만 말한다."""
+    log = profile.get("aspect_log", {})
+
+    def said(key, value):
+        return log.get(key, {}).get(value, 0)
+
+    lines = []
+    if said("stops", "many"):
+        lines.append(f"신호등에 자주 멈추는 걸 불편해하세요 ({said('stops', 'many')}번 말씀하셨어요). 덜 멈추는 코스를 먼저 추천해요.")
+    elif said("stops", "few") >= 2:
+        lines.append("멈추지 않고 달리는 코스에 만족하세요.")
+    if said("scenery", "bad"):
+        lines.append(f"풍경이 별로면 아쉬워하세요 ({said('scenery', 'bad')}번). 고른 풍경을 더 많이 지나는 코스를 먼저 추천해요.")
+    elif said("scenery", "good") >= 2:
+        lines.append("풍경 좋은 코스를 좋아하세요.")
+    if said("safety", "unsafe"):
+        lines.append(f"불안하게 느낀 코스가 있었어요 ({said('safety', 'unsafe')}번). 사람 왕래가 있고 밝은 길을 먼저 추천해요.")
+    elevation = profile.get("elevation_scale", 1.0)
+    if elevation <= 0.9:
+        lines.append(f"오르막을 힘들어하셔서 고른 것보다 {round((1 - elevation) * 100)}% 완만한 코스를 찾아요.")
+    elif elevation >= 1.1:
+        lines.append(f"평탄한 코스가 심심하다고 하셔서 고른 것보다 오르막이 {round((elevation - 1) * 100)}% 더 있는 코스를 찾아요.")
+    distance = profile.get("distance_scale", 1.0)
+    if distance <= 0.95:
+        lines.append(f"코스가 길다고 하셔서, 시간으로 고르실 때 거리를 {round((1 - distance) * 100)}% 짧게 잡아요.")
+    elif distance >= 1.05:
+        lines.append(f"코스가 짧다고 하셔서, 시간으로 고르실 때 거리를 {round((distance - 1) * 100)}% 길게 잡아요.")
+    return lines
 
 
 def new_profile(user_id: str, survey: dict = None) -> dict:
@@ -184,13 +296,47 @@ def _read_all(path) -> dict:
 
 
 def load_profile(user_id: str, path=None):
+    """프로필은 사용자 DB(user_store)에 둔다. path를 주면 예전 방식의 JSON 파일에서 읽는다."""
+    from . import user_store
+
+    if path is not None:
+        with _lock:
+            return _read_all(path).get(user_id)
+    profile = user_store.get_profile(user_id)
+    if profile is None:
+        # 예전에는 JSON 파일 하나에 모든 사용자를 넣어 두었다. 거기 있던 사람은 처음 찾을 때 옮겨 온다
+        with _lock:
+            profile = _read_all(PROFILES_PATH).get(user_id)
+        if profile is not None:
+            user_store.put_profile(profile)
+            forget_legacy(user_id)
+    return profile
+
+
+def forget_legacy(user_id: str) -> None:
+    """예전 JSON 파일에서 이 사람을 지운다.
+
+    DB로 옮긴 뒤에도 파일에 남아 있으면, 데이터를 지우거나 계정으로 옮긴 사람이 다음 조회 때
+    파일에서 되살아난다(실제로 가입 후에도 손님 id로 옛 취향이 조회됐다).
+    """
     with _lock:
-        return _read_all(path or PROFILES_PATH).get(user_id)
+        profiles = _read_all(PROFILES_PATH)
+        if user_id not in profiles:
+            return
+        del profiles[user_id]
+        tmp = f"{PROFILES_PATH}.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(profiles, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, PROFILES_PATH)
 
 
 def save_profile(profile: dict, path=None) -> None:
+    from . import user_store
+
+    if path is None:
+        user_store.put_profile(profile)
+        return
     # 여러 요청이 동시에 저장해도 한쪽이 다른 쪽을 덮어쓰지 않게 읽기-수정-쓰기를 묶는다
-    path = path or PROFILES_PATH
     with _lock:
         profiles = _read_all(path)
         profiles[profile["user_id"]] = profile

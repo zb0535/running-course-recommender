@@ -38,8 +38,16 @@
   .seg button.on, .chip.on{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:700; }
   .chip{ border-radius:999px; }
   .chip.on{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
-  .chip.on[data-tag="바다뷰"]{ background:var(--coast-soft); border-color:var(--coast); color:var(--coast); }
-  .chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .chip.on[data-tag="바다"]{ background:var(--coast-soft); border-color:var(--coast); color:var(--coast); }
+  .chip small{ margin-left:6px; font-size:11px; font-weight:500; opacity:.7; }
+  .chips{ display:flex; flex-direction:column; gap:8px; }
+  .places{ list-style:none; margin:6px 0 0; padding:0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--paper); }
+  .places li{ padding:8px 10px; cursor:pointer; border-top:1px solid var(--line); font-size:13px; }
+  .places li:first-child{ border-top:0; }
+  .places li:hover, .places li:focus{ background:var(--accent-soft); outline:none; }
+  .places li small{ display:block; margin-top:2px; font-size:11.5px; color:var(--muted); }
+  .chip-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .chip-group{ flex:0 0 100%; font-size:11.5px; font-weight:700; color:var(--muted); }
 
   .locbtns{ display:flex; flex-direction:column; gap:6px; }
   .locbtns button{ text-align:left; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--paper); color:var(--ink); font:inherit; font-size:12.5px; cursor:pointer; }
@@ -153,6 +161,38 @@
   .stars button.on{ color:#F5A623; }
   .stars button:focus-visible{ outline:2px solid #1A6FE0; border-radius:6px; }
   .rate-note{ font-size:12px; color:#6b7280; margin-top:6px; }
+  .rate-card{ max-height:calc(100% - 120px); overflow-y:auto; }
+  .rate-detail{ margin-top:8px; text-align:left; }
+  .rate-sub{ font-size:11.5px; color:#6b7280; text-align:center; margin-bottom:6px; }
+  .rate-row{ margin-top:7px; }
+  .rate-row .q{ font-size:12px; font-weight:700; color:#111827; margin-bottom:3px; }
+  .rate-row .opts{ display:flex; gap:4px; }
+  .rate-row .opts button{ flex:1; padding:6px 2px; border:1px solid #d6d9df; border-radius:8px; background:#fff; color:#374151;
+    font:inherit; font-size:11.5px; cursor:pointer; }
+  .rate-row .opts button.on{ background:#1A6FE0; border-color:#1A6FE0; color:#fff; font-weight:700; }
+  #rateComment{ width:100%; margin-top:9px; padding:7px 9px; border:1px solid #d6d9df; border-radius:8px; font:inherit; font-size:12.5px; }
+  .rate-send{ width:100%; margin-top:8px; padding:9px; border:0; border-radius:10px; background:#1A6FE0; color:#fff;
+    font:inherit; font-size:13.5px; font-weight:800; cursor:pointer; }
+  .rate-send:disabled{ opacity:.5; cursor:default; }
+  .account-row{ display:flex; gap:6px; margin-bottom:6px; align-items:center; }
+  .account-row input{ flex:1; min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:13px; background:var(--paper); color:inherit; }
+  .account-row button{ flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:inherit; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .account-row strong{ flex:2; font-size:14px; }
+  #loginBtn{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .route-sheet{ position:relative; }
+  .fav-btn{ position:absolute; top:10px; right:12px; border:0; background:none; font-size:24px; line-height:1; color:#9aa1ad; cursor:pointer; padding:4px; }
+  .fav-btn.on{ color:#F5A623; }
+  #favList li{ cursor:pointer; }
+  #favList li:hover{ border-color:var(--accent); }
+  .taste-gap{ margin-top:14px; }
+  .taste-history{ margin:0; padding:0; list-style:none; display:grid; gap:6px; }
+  .taste-history li{ padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+  .taste-history .stars-s{ color:#F5A623; letter-spacing:1px; }
+  .taste-history small{ display:block; margin-top:2px; color:var(--muted); font-size:11.5px; }
+  .taste-delete{ margin-top:10px; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:none;
+    color:#B03030; font:inherit; font-size:12px; cursor:pointer; }
+  .taste-summary{ margin:0 0 8px; padding:0; list-style:none; display:grid; gap:4px; }
+  .taste-summary li{ padding:7px 10px; border-radius:8px; background:var(--accent-soft); }
   .taste{ margin-top:14px; max-width:600px; font-size:13px; }
   .taste-head{ font-weight:800; margin-bottom:6px; }
   .taste-head span{ font-weight:500; color:var(--muted); font-size:12px; }
@@ -187,6 +227,24 @@
 
   <div class="layout">
     <div class="panel">
+      <div class="field account" id="accountBox">
+        <label>내 계정</label>
+        <div id="accountOut">
+          <div class="account-row">
+            <input id="authName" type="text" autocomplete="username" placeholder="아이디">
+            <input id="authPass" type="password" autocomplete="current-password" placeholder="비밀번호 (8자 이상)">
+          </div>
+          <div class="account-row">
+            <button id="loginBtn">로그인</button>
+            <button id="signupBtn">가입하기</button>
+          </div>
+        </div>
+        <div id="accountIn" hidden>
+          <div class="account-row"><strong id="accountName"></strong><button id="logoutBtn">로그아웃</button></div>
+        </div>
+        <p class="hint" id="accountNote">로그인하면 내 취향과 평가 이력을 나만 볼 수 있어요. 가입하면 지금까지 쌓인 취향도 그대로 옮겨집니다.</p>
+      </div>
+
       <div class="field">
         <div class="row-between"><label>선호 거리</label><span class="val" id="distVal">5.0 km</span></div>
         <input type="range" id="dist" min="1" max="10" step="0.5" value="5">
@@ -204,7 +262,7 @@
       <div class="field">
         <label>원하는 풍경</label>
         <div class="chips" id="tagChips" aria-live="polite"></div>
-        <p class="hint" id="tagHint">풍경을 고르면 그 풍경을 실제로 지나는 코스만 추천합니다.</p>
+        <p class="hint" id="tagHint">달리고 싶은 풍경을 골라 보세요. 지금 위치 근처에 있는 것만 보여드려요.</p>
       </div>
 
       <div class="field">
@@ -219,13 +277,16 @@
 
       <div class="field">
         <label for="destInput">목적지 (선택)</label>
-        <input id="destInput" type="text" placeholder="예: 오동도, 여수 — 비워두면 조건으로 추천">
+        <input id="destInput" type="text" autocomplete="off" placeholder="장소 이름을 입력하고 목록에서 고르세요">
+        <ul class="places" id="placeList" hidden></ul>
+        <p class="hint" id="destNote">비워 두면 조건에 맞는 코스를 추천합니다.</p>
       </div>
 
       <div class="field">
         <label>출발 위치</label>
         <button class="current-location-btn" id="currentLocationBtn">⌖ 내 실제 위치로 코스 만들기</button>
         <div class="locbtns" id="locBtns">
+          <button id="myLocBtn" data-mine="1">내 현재 위치 사용 <span class="d" id="myLocNote">· 브라우저 위치 권한 필요</span></button>
           <button data-lat="34.7393" data-lng="127.7359" class="on">여수 이순신광장 <span class="d">· 근처에 DB 코스 있음</span></button>
           <button data-lat="35.1565" data-lng="126.8386">광주 상무지구 <span class="d">· 근처에 DB 코스 있음</span></button>
           <button data-lat="35.1595" data-lng="129.1604">부산 해운대 <span class="d">· DB에 없음 → 실시간 생성</span></button>
@@ -233,7 +294,7 @@
       </div>
 
       <button class="go" id="goBtn">코스 추천받기</button>
-      <p class="hint">현위치 반경 5km 안에 코스가 있으면 즉시 매칭되고, 없으면(부산 선택 시) 서버가 그 자리에서 Tmap 보행자 경로 + Open Topo Data 고도 + OSM 태그로 코스를 생성합니다 — 실제로 10초 정도 걸립니다.</p>
+      <p class="hint">"내 현재 위치 사용"을 누르면 실제 위치로, 아래 세 곳은 정해 둔 위치로 요청합니다. 반경 5km 안에 저장된 코스가 있으면 즉시 매칭되고, 없으면 서버가 그 자리에서 코스를 만듭니다 — 10초 정도 걸립니다.</p>
     </div>
 
     <div class="stage">
@@ -265,6 +326,7 @@
         </div>
 
         <div class="route-sheet" id="routeSheet" hidden>
+          <button class="fav-btn" id="favBtn" title="즐겨찾기" aria-pressed="false">☆</button>
           <div><span class="name" id="courseName">—</span><span class="region" id="courseRegion"></span></div>
           <div class="stats">
             <div><div class="n" id="statDist">—</div><div class="l">km</div></div>
@@ -293,6 +355,12 @@
           <div class="stars" id="stars">
             <button data-r="1" aria-label="1점">★</button><button data-r="2" aria-label="2점">★</button><button data-r="3" aria-label="3점">★</button><button data-r="4" aria-label="4점">★</button><button data-r="5" aria-label="5점">★</button>
           </div>
+          <div class="rate-detail" id="rateDetail" hidden>
+            <div class="rate-sub">더 알려주시면 다음 추천이 정확해져요 (건너뛰어도 됩니다)</div>
+            <div id="rateQuestions"></div>
+            <input id="rateComment" type="text" maxlength="500" placeholder="한마디 남기기 (선택)">
+            <button class="rate-send" id="rateSend">평가 보내기</button>
+          </div>
           <div class="rate-note" id="rateNote">평가할수록 다음 추천이 내 취향에 맞춰집니다</div>
         </div>
       </div>
@@ -301,8 +369,14 @@
 
       <section class="taste" id="tastePanel" hidden>
         <div class="taste-head">내 취향 <span id="tasteCount"></span></div>
+        <ul class="taste-summary" id="tasteSummary"></ul>
         <ol id="tasteList"></ol>
         <p class="taste-foot">러닝 후 평가로 학습한 결과입니다. 숫자는 처음 기준보다 몇 % 더(덜) 중시하게 됐는지입니다.</p>
+        <div class="taste-head taste-gap">즐겨찾기 <span id="favCount"></span></div>
+        <ul class="taste-history" id="favList"></ul>
+        <div class="taste-head taste-gap">내가 한 평가 <span id="tasteStats"></span></div>
+        <ul class="taste-history" id="tasteHistory"></ul>
+        <button class="taste-delete" id="tasteDelete">내 데이터 모두 지우기 (로그인 중이면 계정도 삭제)</button>
       </section>
     </div>
   </div>
@@ -551,7 +625,8 @@ function showRouteSheet(course, score){
   document.getElementById('turnSecondary').hidden = true;
   document.getElementById('arrivedBadge').hidden = true;
   document.getElementById('courseName').textContent = course.name;
-  document.getElementById('courseRegion').textContent = course.region;
+  // 코스가 실제로 지나는 풍경을 쉬운 이름으로 같이 보여준다 (예: 여수 · 바다 · 공원)
+  document.getElementById('courseRegion').textContent = [course.region, ...(course.scenery_labels || [])].join(' · ');
   document.getElementById('statDist').textContent = fmt(course.distance_km);
   document.getElementById('statElev').textContent = Math.round(course.elevation_gain_m);
   document.getElementById('statSignal').textContent = course.traffic_signal_count;
@@ -559,6 +634,14 @@ function showRouteSheet(course, score){
 
   const notes = [];
   if (course._source === 'generated') notes.push(`실시간 생성됨 · 다음부터 이 지역은 즉시 매칭`);
+  if (course.road_mix){
+    // 차도가 아니라 사람이 다니는 길로 가는지. 인도 없는 차도를 지나는 코스는 서버가 내보내지 않는다.
+    const m = course.road_mix, pct = v => Math.round((v || 0) * 100);
+    notes.push(`인도 ${pct(m.sidewalk)}% · 차 없는 길 ${pct(m.car_free)}%`
+      + (m.alley >= 0.005 ? ` · 골목 ${pct(m.alley)}%` : '') + ' · 차도 0%');
+  }
+  if (course.planned_for_night) notes.push(`밤 코스 · 사람 있는 길 ${Math.round((course.lively_ratio || 0) * 100)}% · 인적 드문 길 ${Math.round((course.secluded_ratio || 0) * 100)}%`);
+  if (course.access_m) notes.push(`코스 시작점까지 걸어서 ${course.access_m}m`);
   if (course.trimmed) notes.push(`원래 ${course.original_distance_km}km 코스를 요청 거리만큼 앞부분만 표시 (중간에 돌아오면 됨)`);
   document.getElementById('routeNote').textContent = notes.join(' · ');
 }
@@ -815,50 +898,95 @@ document.querySelectorAll('#elevSeg button').forEach(b => b.addEventListener('cl
 // 풍경 선택지는 서버가 내려준다 — 실제로 그 풍경을 지나는 코스가 있는 것만, 붙는 기준과 함께.
 // 화면에 고정해 두면 코스가 없는 풍경도 고를 수 있게 되어 결과 0개가 나온다.
 const DEFAULT_TAG_HINT = document.getElementById('tagHint').textContent;
-fetch('/onboarding/scenery').then(r => r.json()).then(({ scenery }) => {
-  const box = document.getElementById('tagChips');
-  scenery.forEach(option => {
-    const chip = document.createElement('button');
-    chip.className = 'chip';
-    chip.dataset.tag = option.value;
-    chip.textContent = `${option.value} ${option.course_count}`;
-    chip.title = option.description;
-    chip.addEventListener('click', () => {
-      chip.classList.toggle('on');
-      document.getElementById('tagHint').textContent =
-        chip.classList.contains('on') ? `${option.value}: ${option.description}` : DEFAULT_TAG_HINT;
+function loadScenery(loc){
+  // 현위치를 알면 그 주변(10km)에 실제로 있는 풍경만 받는다. 묶음별로 나눠 보여준다.
+  const query = loc ? `?lat=${loc.lat}&lng=${loc.lng}` : '';
+  const chosen = new Set([...document.querySelectorAll('#tagChips .chip.on')].map(c => c.dataset.tag));
+  return fetch('/onboarding/scenery' + query).then(r => r.json()).then(({ scenery, groups }) => {
+    const box = document.getElementById('tagChips');
+    box.innerHTML = '';
+    groups.forEach(group => {
+      const options = scenery.filter(o => o.group === group);
+      if (!options.length) return;
+      const row = document.createElement('div');
+      row.className = 'chip-row';
+      const title = document.createElement('span');
+      title.className = 'chip-group';
+      title.textContent = group;
+      row.appendChild(title);
+      options.forEach(option => {
+        const chip = document.createElement('button');
+        chip.className = 'chip' + (chosen.has(option.value) ? ' on' : '');
+        chip.dataset.tag = option.value;
+        chip.textContent = option.label;
+        if (option.near){
+          const near = document.createElement('small');
+          near.textContent = option.near;
+          chip.appendChild(near);
+        }
+        chip.title = option.hint;
+        chip.addEventListener('click', () => {
+          chip.classList.toggle('on');
+          document.getElementById('tagHint').textContent =
+            chip.classList.contains('on') ? `${option.label} — ${option.hint}` : DEFAULT_TAG_HINT;
+        });
+        row.appendChild(chip);
+      });
+      box.appendChild(row);
     });
-    box.appendChild(chip);
-  });
-}).catch(() => { document.getElementById('tagHint').textContent = '풍경 목록을 불러오지 못했습니다.'; });
+  }).catch(() => { document.getElementById('tagHint').textContent = '풍경 목록을 불러오지 못했습니다.'; });
+}
+loadScenery(selectedLoc);
 document.querySelectorAll('#routeSeg button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('#routeSeg button').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
 }));
-function selectSimulationLocation(button){
+function chooseLocation(button, loc){
   document.querySelectorAll('#locBtns button').forEach(x => x.classList.remove('on'));
   button.classList.add('on');
-  selectedLoc = { lat: parseFloat(button.dataset.lat), lng: parseFloat(button.dataset.lng) };
+  selectedLoc = loc;
+  loadScenery(selectedLoc);
 }
 
-document.querySelectorAll('#locBtns button').forEach(b => b.addEventListener('click', () => selectSimulationLocation(b)));
+document.querySelectorAll('#locBtns button').forEach(b => b.addEventListener('click', () => {
+  if (!b.dataset.mine){
+    chooseLocation(b, { lat: parseFloat(b.dataset.lat), lng: parseFloat(b.dataset.lng) });
+    return;
+  }
+  const note = document.getElementById('myLocNote');
+  if (!navigator.geolocation){ note.textContent = '· 이 브라우저는 위치를 지원하지 않습니다'; return; }
+  note.textContent = '· 위치 확인 중…';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      note.textContent = `· ${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)} (오차 약 ${Math.round(pos.coords.accuracy)}m)`;
+      chooseLocation(b, loc);
+    },
+    err => {
+      note.textContent = err.code === 1 ? '· 위치 권한이 거부됐습니다. 브라우저 주소창의 위치 설정에서 허용해 주세요'
+        : err.code === 3 ? '· 위치를 받는 데 시간이 너무 걸립니다. 다시 눌러 보세요'
+        : '· 위치를 확인하지 못했습니다';
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+  );
+}));
 
-// 실제 용봉동에 있지 않아도 GraphML 시각화가 맞는지 검증할 수 있는 전용 시뮬레이션 출발점.
-// 일반 사용자 화면에서는 만들지 않으므로 운영용 좌표가 노출되지 않는다.
+// GraphML 시각화 검증 위치는 운영 화면이 아닌 ?graph_debug=1에서만 보인다.
 if (GRAPH_DEBUG){
   const button = document.createElement('button');
   button.dataset.lat = '35.1765';
   button.dataset.lng = '126.9110';
   button.innerHTML = '광주 용봉동 <span class="d">· GraphML 검증 위치</span>';
-  button.addEventListener('click', () => selectSimulationLocation(button));
+  button.addEventListener('click', () => chooseLocation(button, { lat: 35.1765, lng: 126.9110 }));
   document.getElementById('locBtns').appendChild(button);
 }
 
+// 기존 모바일 흐름: 실제 위치 확인 뒤 즉시 같은 위치에서 코스 생성을 시작한다.
 document.getElementById('currentLocationBtn').addEventListener('click', () => {
   const button = document.getElementById('currentLocationBtn');
   const status = document.getElementById('status');
   if (!window.isSecureContext){
-    status.textContent = '위치 정보는 HTTPS 주소에서만 쓸 수 있습니다. http://IP:8000 대신 HTTPS 터널(cloudflared·ngrok) 주소로 접속하세요.';
+    status.textContent = '위치 정보는 HTTPS 주소에서만 쓸 수 있습니다. HTTPS 배포 주소로 접속하세요.';
     return;
   }
   if (!navigator.geolocation){
@@ -870,25 +998,66 @@ document.getElementById('currentLocationBtn').addEventListener('click', () => {
   status.textContent = 'GPS로 실제 출발 위치를 확인하는 중…';
   navigator.geolocation.getCurrentPosition(
     ({coords}) => {
-      selectedLoc = {lat: coords.latitude, lng: coords.longitude};
-      document.querySelectorAll('#locBtns button').forEach(x => x.classList.remove('on'));
+      chooseLocation(button, {lat: coords.latitude, lng: coords.longitude});
       button.textContent = '⌖ 실제 위치 확인됨';
       button.disabled = false;
       status.textContent = '실제 위치를 확인했습니다. 해당 위치에서 코스를 생성합니다.';
       document.getElementById('goBtn').click();
     },
     (error) => {
-      const messages = {
-        1: '위치 권한이 거부됐습니다. 브라우저 사이트 설정에서 위치 권한을 허용해주세요.',
-        2: '현재 위치를 확인할 수 없습니다. GPS 또는 위치 서비스를 확인해주세요.',
-        3: '위치 확인 시간이 초과됐습니다. 다시 시도하거나 시뮬레이션 위치를 선택해주세요.',
-      };
+      const messages = {1: '위치 권한이 거부됐습니다. 브라우저 사이트 설정에서 위치 권한을 허용해주세요.', 2: '현재 위치를 확인할 수 없습니다. GPS 또는 위치 서비스를 확인해주세요.', 3: '위치 확인 시간이 초과됐습니다. 다시 시도하거나 시뮬레이션 위치를 선택해주세요.'};
       status.textContent = messages[error.code] || '현재 위치를 가져오지 못했습니다.';
       button.textContent = '⌖ 내 실제 위치로 코스 만들기';
       button.disabled = false;
     },
     {enableHighAccuracy: true, maximumAge: 5000, timeout: 15000},
   );
+});
+
+// 목적지 검색: 입력을 멈추면 후보를 받아 목록으로 보여준다. 이름이 같은 장소가 여러 곳일 수 있어서
+// 서버가 하나를 찍지 않고 사용자가 고른다.
+let chosenPlace = null, placeTimer = null, placeQuery = 0;
+const destInput = document.getElementById('destInput');
+const placeList = document.getElementById('placeList');
+const destNote = document.getElementById('destNote');
+const DEFAULT_DEST_NOTE = destNote.textContent;
+function showPlaces(places){
+  placeList.innerHTML = '';
+  placeList.hidden = !places.length;
+  places.forEach(place => {
+    const li = document.createElement('li');
+    li.tabIndex = 0;
+    li.textContent = place.name;
+    const detail = document.createElement('small');
+    const far = place.distance_km == null ? '' : ` · 여기서 ${place.distance_km < 1 ? Math.round(place.distance_km * 1000) + 'm' : place.distance_km.toFixed(1) + 'km'}`;
+    detail.textContent = [place.category, place.address].filter(Boolean).join(' · ') + far;
+    li.appendChild(detail);
+    const pick = () => {
+      chosenPlace = place;
+      destInput.value = place.name;
+      placeList.hidden = true;
+      destNote.textContent = `목적지: ${place.name} (${place.address})`;
+    };
+    li.addEventListener('click', pick);
+    li.addEventListener('keydown', e => { if (e.key === 'Enter') pick(); });
+    placeList.appendChild(li);
+  });
+}
+destInput.addEventListener('input', () => {
+  chosenPlace = null;
+  clearTimeout(placeTimer);
+  const q = destInput.value.trim();
+  if (q.length < 2){ showPlaces([]); destNote.textContent = DEFAULT_DEST_NOTE; return; }
+  placeTimer = setTimeout(async () => {
+    const mine = ++placeQuery;
+    try {
+      const res = await fetch(`/places?q=${encodeURIComponent(q)}&lat=${selectedLoc.lat}&lng=${selectedLoc.lng}`);
+      const { places } = await res.json();
+      if (mine !== placeQuery) return;   // 그사이 다시 입력했으면 이 결과는 버린다
+      showPlaces(places);
+      destNote.textContent = places.length ? '목록에서 목적지를 골라 주세요.' : `'${q}'을(를) 찾지 못했습니다. 다른 이름으로 검색해 보세요.`;
+    } catch (e) { destNote.textContent = '장소를 검색하지 못했습니다.'; }
+  }, 350);
 });
 
 document.getElementById('goBtn').addEventListener('click', async () => {
@@ -903,6 +1072,8 @@ document.getElementById('goBtn').addEventListener('click', async () => {
   const elev = document.querySelector('#elevSeg button.on').dataset.v;
   const routeType = document.querySelector('#routeSeg button.on').dataset.v;
   const destination = document.getElementById('destInput').value.trim();
+  // 목록에서 고른 장소면 그 좌표로 보낸다 (이름만 보내면 서버가 첫 후보로 정한다)
+  const picked = chosenPlace && chosenPlace.name === destination ? chosenPlace : null;
   const payload = {
     preferred_distance_km: parseFloat(document.getElementById('dist').value),
     elevation_preference: elev,
@@ -912,6 +1083,7 @@ document.getElementById('goBtn').addEventListener('click', async () => {
     ...(GRAPH_DEBUG && routeType === 'loop' ? { loop_engine: 'graphml' } : {}),
     user_id: USER_ID,
     ...(destination ? { destination } : {}),
+    ...(picked ? { destination_lat: picked.lat, destination_lng: picked.lng } : {}),
     current_lat: selectedLoc.lat,
     current_lng: selectedLoc.lng,
     max_distance_km: 5,
@@ -922,7 +1094,7 @@ document.getElementById('goBtn').addEventListener('click', async () => {
   const t0 = performance.now();
   try{
     const resp = await fetch('/recommend', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(payload),
     });
     if (!resp.ok){
       const err = await resp.json().catch(() => ({}));
@@ -945,6 +1117,7 @@ document.getElementById('goBtn').addEventListener('click', async () => {
     status.textContent = `${sourceLabel[body.source] || 'DB 매칭 완료'} · ${elapsed}초`;
     drawCourse(course);
     showRouteSheet(course, score);
+    markFavorite(!!body.results[0].favorite);
   } catch(e){
     status.textContent = '서버 연결에 실패했습니다: ' + e.message;
   } finally {
@@ -955,44 +1128,137 @@ document.getElementById('goBtn').addEventListener('click', async () => {
 // 코스를 받기 전에는 지도를 만들지 않는다 — drawCourse가 경로에 맞춰 새로 띄운다.
 
 // ── 개인화: 러닝 후 만족도로 이 사람의 가중치를 학습한다 ──
-// 로그인이 없는 데모라 브라우저마다 익명 id를 만들어 기억한다. 실제 앱에선 계정 id를 쓴다.
-const USER_ID = (() => {
+// 로그인하지 않으면 브라우저마다 만든 익명 id(손님)로 쓴다. 로그인하면 계정 id와 토큰을 쓴다.
+const GUEST_ID = (() => {
   try {
     let id = localStorage.getItem('runner_user_id');
     if (!id){ id = 'demo-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('runner_user_id', id); }
     return id;
   } catch (e) { return 'demo-anon'; }
 })();
+let USER_ID = GUEST_ID;
+let session = null;   // { user_id, username, token }
+try { session = JSON.parse(localStorage.getItem('runner_session') || 'null'); } catch (e) {}
+
+// 계정의 데이터를 다루는 요청에는 로그인 토큰을 붙인다
+function authHeaders(extra){
+  return { ...(extra || {}), ...(session ? { Authorization: `Bearer ${session.token}` } : {}) };
+}
+
+function showAccount(){
+  USER_ID = session ? session.user_id : GUEST_ID;
+  document.getElementById('accountOut').hidden = !!session;
+  document.getElementById('accountIn').hidden = !session;
+  if (session) document.getElementById('accountName').textContent = `${session.username} 님`;
+  document.getElementById('tastePanel').hidden = true;
+  loadMyTaste();
+  loadFavorites();
+}
+
+async function authenticate(path){
+  const note = document.getElementById('accountNote');
+  const username = document.getElementById('authName').value.trim();
+  const password = document.getElementById('authPass').value;
+  if (!username || !password){ note.textContent = '아이디와 비밀번호를 입력해 주세요.'; return; }
+  try {
+    const res = await fetch(path, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      // 가입할 때는 손님으로 쌓은 취향을 계정으로 옮기도록 손님 id를 같이 보낸다
+      body: JSON.stringify({ username, password, ...(path.endsWith('signup') ? { guest_id: GUEST_ID } : {}) }),
+    });
+    const body = await res.json();
+    if (!res.ok){ note.textContent = typeof body.detail === 'string' ? body.detail : '입력을 확인해 주세요.'; return; }
+    session = body;
+    try { localStorage.setItem('runner_session', JSON.stringify(session)); } catch (e) {}
+    document.getElementById('authPass').value = '';
+    note.textContent = path.endsWith('signup') ? '가입했습니다. 지금까지 쌓인 취향을 계정으로 옮겼어요.' : '로그인했습니다.';
+    showAccount();
+  } catch (e) { note.textContent = '서버에 연결하지 못했습니다.'; }
+}
+document.getElementById('loginBtn').addEventListener('click', () => authenticate('/auth/login'));
+document.getElementById('signupBtn').addEventListener('click', () => authenticate('/auth/signup'));
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/auth/logout', { method: 'POST', headers: authHeaders() }).catch(() => {});
+  session = null;
+  try { localStorage.removeItem('runner_session'); } catch (e) {}
+  document.getElementById('accountNote').textContent = '로그아웃했습니다.';
+  showAccount();
+});
+
+let chosenRating = 0;
+const chosenAspects = {};
 
 function showRateCard(){
   const card = document.getElementById('rateCard');
   card.hidden = false;
   card.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+  chosenRating = 0;
+  Object.keys(chosenAspects).forEach(k => delete chosenAspects[k]);
+  document.getElementById('rateDetail').hidden = true;
+  document.getElementById('rateComment').value = '';
+  document.getElementById('rateSend').disabled = false;
   document.getElementById('rateNote').textContent = '평가할수록 다음 추천이 내 취향에 맞춰집니다';
 }
 
-document.getElementById('stars').addEventListener('click', async (e) => {
+// 항목별 질문은 서버가 내려준다. 별점만으로는 무엇이 좋았는지 알 수 없어서 거리·오르막·멈춤·풍경·안심을 따로 묻는다.
+fetch('/onboarding/feedback').then(r => r.json()).then(({ questions }) => {
+  const box = document.getElementById('rateQuestions');
+  questions.forEach(q => {
+    const row = document.createElement('div');
+    row.className = 'rate-row';
+    const title = document.createElement('div');
+    title.className = 'q';
+    title.textContent = q.question;
+    const opts = document.createElement('div');
+    opts.className = 'opts';
+    q.options.forEach(option => {
+      const btn = document.createElement('button');
+      btn.textContent = option.label;
+      btn.addEventListener('click', () => {
+        const already = chosenAspects[q.key] === option.value;   // 다시 누르면 선택 취소
+        opts.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+        if (already) delete chosenAspects[q.key];
+        else { chosenAspects[q.key] = option.value; btn.classList.add('on'); }
+      });
+      opts.appendChild(btn);
+    });
+    row.append(title, opts);
+    box.appendChild(row);
+  });
+}).catch(() => {});
+
+document.getElementById('stars').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-r]');
+  if (!btn || !window._currentCourse) return;
+  chosenRating = Number(btn.dataset.r);
+  document.querySelectorAll('#stars button').forEach(b => b.classList.toggle('on', Number(b.dataset.r) <= chosenRating));
+  document.getElementById('rateDetail').hidden = false;
+});
+
+document.getElementById('rateSend').addEventListener('click', async () => {
   const course = window._currentCourse;
-  if (!btn || !course) return;
-  const rating = Number(btn.dataset.r);
-  document.querySelectorAll('#stars button').forEach(b => b.classList.toggle('on', Number(b.dataset.r) <= rating));
   const note = document.getElementById('rateNote');
+  if (!course || !chosenRating) return;
+  const send = document.getElementById('rateSend');
+  send.disabled = true;
+  const comment = document.getElementById('rateComment').value.trim();
   try {
     const res = await fetch('/feedback', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: USER_ID, course_id: course.id, rating }),
+      method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ user_id: USER_ID, course_id: course.id, rating: chosenRating,
+                             aspects: chosenAspects, ...(comment ? { comment } : {}) }),
     });
     const body = await res.json();
-    if (!res.ok) { note.textContent = body.detail || '평가를 저장하지 못했습니다'; return; }
-    const top = body.explanation[0];
-    // 평가가 쌓여 뚜렷한 취향이 생겼을 때만 "~를 중시한다"고 말한다. 애매하면 단정하지 않는다.
-    note.textContent = rating >= 4
-      ? (top.preference >= 0.1 ? `반영했습니다 · "${top.label}"을(를) 중시하시는 것 같아요` : '반영했습니다 · 이런 코스를 더 추천할게요')
-      : '반영했습니다 · 다음 추천에서 이런 코스는 덜 나옵니다';
+    if (!res.ok) { note.textContent = body.detail || '평가를 저장하지 못했습니다'; send.disabled = false; return; }
+    document.getElementById('rateDetail').hidden = true;
+    // 답한 내용에 근거가 있는 문장이 있으면 그걸 보여준다. 없으면 단정하지 않는다.
+    note.textContent = body.summary.length ? `반영했습니다 · ${body.summary[0]}`
+      : (chosenRating >= 4 ? '반영했습니다 · 이런 코스를 더 추천할게요' : '반영했습니다 · 다음 추천에서 이런 코스는 덜 나옵니다');
     renderTaste(body);
+    loadMyTaste();
   } catch (err) {
     note.textContent = '서버에 연결하지 못했습니다';
+    send.disabled = false;
   }
 });
 
@@ -1000,6 +1266,13 @@ function renderTaste(profile){
   if (!profile || !profile.n_feedback) return;
   document.getElementById('tastePanel').hidden = false;
   document.getElementById('tasteCount').textContent = `· 평가 ${profile.n_feedback}회`;
+  const summary = document.getElementById('tasteSummary');
+  summary.innerHTML = '';
+  (profile.summary || []).forEach(line => {
+    const li = document.createElement('li');
+    li.textContent = line;
+    summary.appendChild(li);
+  });
   const list = document.getElementById('tasteList');
   list.innerHTML = '';
   profile.explanation.forEach(row => {
@@ -1013,7 +1286,96 @@ function renderTaste(profile){
   });
 }
 
-fetch(`/profile/${encodeURIComponent(USER_ID)}`).then(r => r.ok ? r.json() : null).then(renderTaste).catch(() => {});
+// 내 취향 화면: 요약·중요도는 renderTaste가, 평가 이력은 여기서 그린다. 전부 /users/{id}/taste 하나에서 온다.
+function loadMyTaste(){
+  return fetch(`/users/${encodeURIComponent(USER_ID)}/taste`, { headers: authHeaders() }).then(r => {
+    // 토큰이 만료됐으면 로그아웃 상태로 돌아간다
+    if (r.status === 401 && session){ session = null; try { localStorage.removeItem('runner_session'); } catch (e) {} showAccount(); }
+    return r.ok ? r.json() : null;
+  }).then(taste => {
+    if (!taste) return;
+    renderTaste(taste);
+    const stats = taste.stats;
+    document.getElementById('tasteStats').textContent = stats.feedback_count
+      ? `· ${stats.feedback_count}번 · 평균 ${stats.average_rating}점`
+        + (stats.liked_scenery.length ? ` · 좋아한 풍경: ${stats.liked_scenery.slice(0, 3).map(x => x.label).join(', ')}` : '')
+      : '';
+    const list = document.getElementById('tasteHistory');
+    list.innerHTML = '';
+    taste.history.slice(0, 10).forEach(item => {
+      const li = document.createElement('li');
+      const stars = document.createElement('span');
+      stars.className = 'stars-s';
+      stars.textContent = '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating);
+      li.append(stars, ` ${item.course_name || item.course_id}`);
+      const detail = document.createElement('small');
+      const day = new Date(item.created_at * 1000).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+      detail.textContent = [day, ...item.answers, item.comment ? `"${item.comment}"` : null].filter(Boolean).join(' · ');
+      li.appendChild(detail);
+      list.appendChild(li);
+    });
+  }).catch(() => {});
+}
+document.getElementById('tasteDelete').addEventListener('click', async () => {
+  if (!confirm('학습된 취향, 평가 이력, 후기, 즐겨찾기를 모두 지웁니다. 되돌릴 수 없습니다. 지울까요?')) return;
+  const res = await fetch(`/users/${encodeURIComponent(USER_ID)}`, { method: 'DELETE', headers: authHeaders() });
+  if (!res.ok) return;
+  document.getElementById('tastePanel').hidden = true;
+  if (session){   // 계정까지 같이 지워진다
+    session = null;
+    try { localStorage.removeItem('runner_session'); } catch (e) {}
+    document.getElementById('accountNote').textContent = '계정과 데이터를 모두 지웠습니다.';
+    showAccount();
+  }
+});
+// ── 즐겨찾기: 마음에 든 코스를 저장해 두고 다시 불러온다. 코스 내용을 통째로 저장하므로
+// 실시간으로 만든 코스도 그때 그대로 다시 달릴 수 있다.
+function markFavorite(on){
+  const btn = document.getElementById('favBtn');
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '★' : '☆';
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+function loadFavorites(){
+  return fetch(`/favorites/${encodeURIComponent(USER_ID)}`, { headers: authHeaders() })
+    .then(r => r.ok ? r.json() : { favorites: [] }).then(({ favorites }) => {
+      document.getElementById('favCount').textContent = favorites.length ? `· ${favorites.length}개` : '· 아직 없어요. 코스 카드의 ☆를 눌러 저장하세요';
+      if (favorites.length) document.getElementById('tastePanel').hidden = false;
+      const list = document.getElementById('favList');
+      list.innerHTML = '';
+      favorites.forEach(({ course, rating }) => {
+        const li = document.createElement('li');
+        li.tabIndex = 0;
+        li.textContent = course.name;
+        const detail = document.createElement('small');
+        detail.textContent = [`${course.distance_km}km`, ...(course.scenery_labels || []),
+                              rating ? `평균 ${rating.average}점` : null].filter(Boolean).join(' · ');
+        li.appendChild(detail);
+        const open = () => {
+          window._currentCourse = course;
+          window._currentScore = 0;
+          document.getElementById('status').textContent = '즐겨찾기에서 불러왔습니다';
+          drawCourse(course);
+          showRouteSheet(course, 0);
+          markFavorite(true);
+        };
+        li.addEventListener('click', open);
+        li.addEventListener('keydown', e => { if (e.key === 'Enter') open(); });
+        list.appendChild(li);
+      });
+    }).catch(() => {});
+}
+document.getElementById('favBtn').addEventListener('click', async () => {
+  const course = window._currentCourse;
+  if (!course) return;
+  const on = document.getElementById('favBtn').classList.contains('on');
+  const res = on
+    ? await fetch(`/favorites/${encodeURIComponent(USER_ID)}/${encodeURIComponent(course.id)}`, { method: 'DELETE', headers: authHeaders() })
+    : await fetch('/favorites', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
+                                  body: JSON.stringify({ user_id: USER_ID, course_id: course.id, course }) });
+  if (res.ok){ markFavorite(!on); loadFavorites(); }
+});
+showAccount();
 </script>
 </body>
 </html>

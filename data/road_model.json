@@ -1,0 +1,37 @@
+{
+  "bias": -3.2852,
+  "weights": {
+    "hw_footway": 2.4572,
+    "hw_path": 0.9133,
+    "hw_pedestrian": 0.5711,
+    "hw_cycleway": 5.8806,
+    "hw_living_street": -3.9715,
+    "hw_residential": -2.3014,
+    "hw_unclassified": -0.5873,
+    "hw_tertiary": -1.9976,
+    "hw_secondary": -2.701,
+    "hw_primary": -5.5644,
+    "hw_service": -1.3062,
+    "hw_track": 1.2507,
+    "hw_steps": 1.5928,
+    "near_river": 0.17,
+    "near_coast": 0.9315,
+    "near_lake": -0.3631,
+    "near_park": -0.3802,
+    "near_forest": 0.2152,
+    "bridge": -0.2364,
+    "tunnel": 0.06,
+    "lit": 1.395,
+    "named": 2.2359,
+    "sidewalk": 2.5282
+  },
+  "trained_on": {
+    "cells": 2496,
+    "train": 35324,
+    "test": 8216,
+    "positives": 8580,
+    "auc_train": 0.966,
+    "auc_test": 0.971,
+    "auc_test_prior": 0.924
+  }
+}

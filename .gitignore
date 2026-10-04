@@ -27,6 +27,14 @@ Thumbs.db
 # 사용자별 학습 데이터 (개인 데이터, 커밋 금지)
 data/user_profiles.json
 data/user_profiles.json.tmp
+data/app.sqlite
 
 # OSM 지형 데이터 캐시 (다시 받을 수 있음)
 data/osm_cache/
+
+# 내려받은 OSM 파일과 그걸로 만든 로컬 지형 DB (python -m src.data_collection.local_osm)
+data/osm_extract/
+data/osm_local/
+
+# Tmap으로 확인한 길별 인도 유무 (쓰면서 쌓인다)
+data/sidewalk_facts.sqlite
