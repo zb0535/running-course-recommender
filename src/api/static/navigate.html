@@ -835,11 +835,24 @@ document.querySelectorAll('#routeSeg button').forEach(b => b.addEventListener('c
   document.querySelectorAll('#routeSeg button').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
 }));
-document.querySelectorAll('#locBtns button').forEach(b => b.addEventListener('click', () => {
+function selectSimulationLocation(button){
   document.querySelectorAll('#locBtns button').forEach(x => x.classList.remove('on'));
-  b.classList.add('on');
-  selectedLoc = { lat: parseFloat(b.dataset.lat), lng: parseFloat(b.dataset.lng) };
-}));
+  button.classList.add('on');
+  selectedLoc = { lat: parseFloat(button.dataset.lat), lng: parseFloat(button.dataset.lng) };
+}
+
+document.querySelectorAll('#locBtns button').forEach(b => b.addEventListener('click', () => selectSimulationLocation(b)));
+
+// 실제 용봉동에 있지 않아도 GraphML 시각화가 맞는지 검증할 수 있는 전용 시뮬레이션 출발점.
+// 일반 사용자 화면에서는 만들지 않으므로 운영용 좌표가 노출되지 않는다.
+if (GRAPH_DEBUG){
+  const button = document.createElement('button');
+  button.dataset.lat = '35.1765';
+  button.dataset.lng = '126.9110';
+  button.innerHTML = '광주 용봉동 <span class="d">· GraphML 검증 위치</span>';
+  button.addEventListener('click', () => selectSimulationLocation(button));
+  document.getElementById('locBtns').appendChild(button);
+}
 
 document.getElementById('currentLocationBtn').addEventListener('click', () => {
   const button = document.getElementById('currentLocationBtn');
