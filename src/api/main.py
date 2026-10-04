@@ -36,12 +36,15 @@ from ..recommend.personalize import (explain, learn, load_profile, new_profile, 
                                      save_profile, weights_for)
 from ..recommend.score import component_scores, filter_by_required_tags, recommend
 from ..recommend.trim import truncate_course
+from ..map_view.graph_geojson import parse_bbox, public_graph
 
 load_dotenv()
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 MAIN_DB_PATH = os.path.join(DATA_DIR, "courses.json")
 SAMPLE_DB_PATH = os.path.join(DATA_DIR, "courses.sample.json")
+# GraphML은 서버의 탐색용 원본이다. 브라우저에는 변환된 GeoJSON만 필요한 영역만 보낸다.
+GRAPH_GEOJSON_PATH = os.environ.get("GRAPH_GEOJSON_PATH", os.path.join(DATA_DIR, "graph", "yongbong.geojson"))
 
 # 키가 없으면 무엇이 안 되는지. 키를 소스에 넣지 않는 대신 이걸로 안내한다.
 API_KEYS = {
@@ -267,6 +270,21 @@ def health():
         "status": "ok",
         "keys": {name: bool(os.environ.get(name)) for name in API_KEYS},
     }
+
+
+@app.get("/map/graph")
+def map_graph(bbox: Optional[str] = None, crossings: bool = True):
+    """운영자 검증 토글용 GraphML 도로망 GeoJSON.
+
+    일반 추천 응답에는 이 데이터를 넣지 않는다. 필요할 때만 지도 화면 범위를 전달해
+    GraphML 전체를 모바일 브라우저에 보내지 않도록 한다.
+    """
+    try:
+        return public_graph(GRAPH_GEOJSON_PATH, parse_bbox(bbox), include_crossings=crossings)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="그래프 시각화 데이터가 설정되지 않았습니다")
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error))
 
 
 @app.get("/")
