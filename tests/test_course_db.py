@@ -34,5 +34,6 @@ def test_steps_stay_on_the_course_path():
 
 
 def test_every_course_declares_route_type():
-    missing = [c["id"] for c in COURSES if c.get("route_type") not in ("oneway", "roundtrip")]
+    # 실시간으로 만든 순환 코스도 DB에 쌓인다 — 데모를 한 번 돌렸다고 이 테스트가 깨지면 안 된다
+    missing = [c["id"] for c in COURSES if c.get("route_type") not in ("oneway", "roundtrip", "loop")]
     assert not missing, f"route_type이 없는 코스: {missing}"

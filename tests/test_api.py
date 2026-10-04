@@ -89,9 +89,9 @@ def test_scenery_options_list_only_tags_that_have_courses():
     options = client.get("/onboarding/scenery").json()["scenery"]
     assert options, "풍경 선택지가 비어 있다"
     assert all(o["course_count"] >= 1 for o in options)
-    assert all(o["description"] for o in options)
+    assert all(o["hint"] and o["group"] for o in options)
     values = [o["value"] for o in options]
-    assert "바다뷰" in values and "강변" in values
+    assert "바다" in values and "강·하천" in values
 
 
 def test_every_offered_scenery_tag_returns_courses():
@@ -104,3 +104,22 @@ def test_every_offered_scenery_tag_returns_courses():
 def test_unknown_scenery_tag_is_rejected():
     resp = client.post("/recommend", json={"environment_tags": ["벚꽃길"], "use_live_environment": False})
     assert resp.status_code == 422
+
+
+def test_nearby_courses_without_the_requested_scenery_fall_through_to_generation(monkeypatch):
+    """근처에 저장된 코스가 있어도 요청한 풍경이 없으면 빈 결과(200)가 아니라 그 자리에서 만든다."""
+    from src.api import main
+
+    made = {"id": "generated-test", "name": "만든 코스", "region": "실시간 생성", "distance_km": 3.0,
+            "elevation_gain_m": 5, "surface": "paved", "safety_score": 0.7, "route_type": "oneway",
+            "path": [[34.7393, 127.7359], [34.75, 127.74]], "steps": [], "tags": ["호수"], "source": "live_generated"}
+    monkeypatch.setattr(main, "generate_loop_candidates", lambda *a, **k: [dict(made)])
+    monkeypatch.setattr(main, "register_in_background", lambda course: None)
+    resp = client.post("/recommend", json={
+        "preferred_distance_km": 3, "route_type": "oneway", "environment_tags": ["호수"],
+        "current_lat": 34.7393, "current_lng": 127.7359, "max_distance_km": 1, "use_live_environment": False,
+    })
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["source"] == "generated"
+    assert body["results"][0]["course"]["id"] == "generated-test"

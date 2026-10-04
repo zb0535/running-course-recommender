@@ -30,7 +30,7 @@ def stub(monkeypatch):
     monkeypatch.setattr(main, "load_courses", lambda: [DB_COURSE])
     monkeypatch.setattr(main, "filter_nearby", lambda courses, lat, lng, radius: courses)
 
-    def generate(lat, lng, km, tags, route_type="loop"):
+    def generate(lat, lng, km, tags, route_type="loop", night=False):
         calls[route_type].append(route_type)
         return [GENERATED_LOOP]
 

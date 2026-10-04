@@ -9,6 +9,7 @@
   있어서 꼭짓점 기준이면 바로 옆을 달려도 멀다고 나온다.
 - 면(숲·공원)은 안에 있으면 경계에서 멀어도 지나는 것으로 본다.
 """
+import itertools
 import math
 from collections import defaultdict
 
@@ -60,6 +61,10 @@ def _inside(lat: float, lng: float, ring: list) -> bool:
     return inside
 
 
+def _side(a: tuple, b: tuple, c: tuple) -> float:
+    return (b[1] - a[1]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[1] - a[1])
+
+
 class FeatureIndex:
     """OSM 요소(점·선·면)를 격자에 색인해 '이 지점 근처에 있는가'를 빠르게 답한다."""
 
@@ -67,6 +72,9 @@ class FeatureIndex:
         self._segments = []                 # (a, b, 요소번호)
         self._points = []                   # (lat, lng, 요소번호)
         self._rings = []                    # (ring, bbox, 요소번호)
+        self._holes = defaultdict(list)     # 요소번호 -> 그 면에 뚫린 구멍들
+        self._ring_grid = defaultdict(list)  # 격자 칸 -> 그 칸에 걸친 면들 (면이 많은 지역에서 전부 훑지 않게)
+        self._wide_rings = []                # 너무 넓어 칸마다 적어 두지 않는 면
         self._seg_grid = defaultdict(list)
         self._pt_grid = defaultdict(list)
         self.size = 0
@@ -78,7 +86,7 @@ class FeatureIndex:
     def _cell(lat: float, lng: float) -> tuple:
         return int(math.floor(lat / CELL_DEG)), int(math.floor(lng / CELL_DEG))
 
-    def _add_way(self, geometry: list, eid: int) -> None:
+    def _add_way(self, geometry: list, eid: int, hole: bool = False) -> None:
         pts = [(g["lat"], g["lon"]) for g in geometry if g]
         for a, b in zip(pts, pts[1:]):
             idx = len(self._segments)
@@ -88,8 +96,22 @@ class FeatureIndex:
                 for c in range(min(c1, c2), max(c1, c2) + 1):
                     self._seg_grid[(r, c)].append(idx)
         if len(pts) >= 4 and pts[0] == pts[-1]:
+            if hole:
+                # 구멍 안은 그 지형이 아니다. 섬을 두르는 강변 공원은 바깥 고리가 섬 전체를 감싸므로,
+                # 구멍을 빼지 않으면 섬 안 시가지가 통째로 공원으로 잡힌다(여의도에서 공원 100%).
+                self._holes[eid].append(pts)
+                return
             lats, lngs = [p[0] for p in pts], [p[1] for p in pts]
-            self._rings.append((pts, (min(lats), min(lngs), max(lats), max(lngs)), eid))
+            box = (min(lats), min(lngs), max(lats), max(lngs))
+            index = len(self._rings)
+            self._rings.append((pts, box, eid))
+            (r1, c1), (r2, c2) = self._cell(box[0], box[1]), self._cell(box[2], box[3])
+            if (r2 - r1 + 1) * (c2 - c1 + 1) > 400:
+                self._wide_rings.append(index)
+            else:
+                for r in range(r1, r2 + 1):
+                    for c in range(c1, c2 + 1):
+                        self._ring_grid[(r, c)].append(index)
 
     def _add(self, element: dict, eid: int) -> None:
         kind = element.get("type")
@@ -99,7 +121,7 @@ class FeatureIndex:
         elif kind == "relation":
             for member in element.get("members", []):
                 if member.get("geometry"):
-                    self._add_way(member["geometry"], eid)
+                    self._add_way(member["geometry"], eid, hole=member.get("role") == "inner")
         elif element.get("geometry"):
             self._add_way(element["geometry"], eid)
 
@@ -128,13 +150,52 @@ class FeatureIndex:
                 plat, plng, eid = self._points[idx]
                 if eid not in found and haversine_m((lat, lng), (plat, plng)) <= radius_m:
                     found.add(eid)
-        for ring, (s, w, n, e), eid in self._rings:
-            if eid not in found and s <= lat <= n and w <= lng <= e and _inside(lat, lng, ring):
+        for index in itertools.chain(self._ring_grid.get(self._cell(lat, lng), ()), self._wide_rings):
+            ring, (s, w, n, e), eid = self._rings[index]
+            if (eid not in found and s <= lat <= n and w <= lng <= e and _inside(lat, lng, ring)
+                    and not any(_inside(lat, lng, hole) for hole in self._holes.get(eid, ()))):
                 found.add(eid)
         return found
 
     def near(self, lat: float, lng: float, radius_m: float) -> bool:
         return bool(self.features_near(lat, lng, radius_m))
+
+    def crosses(self, a: tuple, b: tuple) -> bool:
+        """a에서 b로 그은 직선이 이 지형의 선을 가로지르는가. 해안선이면 그 사이에 바다가 있다는 뜻이다."""
+        (r1, c1), (r2, c2) = self._cell(*a), self._cell(*b)
+        seen = set()
+        for r in range(min(r1, r2), max(r1, r2) + 1):
+            for c in range(min(c1, c2), max(c1, c2) + 1):
+                for idx in self._seg_grid.get((r, c), ()):
+                    if idx in seen:
+                        continue
+                    seen.add(idx)
+                    p, q, _ = self._segments[idx]
+                    if _side(a, b, p) * _side(a, b, q) < 0 and _side(p, q, a) * _side(p, q, b) < 0:
+                        return True
+        return False
+
+    def nearest_point(self, lat: float, lng: float, radius_m: float):
+        """반경 안에서 가장 가까운 선 위의 지점 (lat, lng). 없으면 None. 경유지를 길 위에 붙일 때 쓴다."""
+        k = M_PER_DEG_LAT * math.cos(math.radians(lat))
+        best, best_d = None, radius_m
+        seen = set()
+        for cell in self._cells_around(lat, lng, radius_m):
+            for idx in self._seg_grid.get(cell, ()):
+                if idx in seen:
+                    continue
+                seen.add(idx)
+                a, b, _ = self._segments[idx]
+                ax, ay = (a[1] - lng) * k, (a[0] - lat) * M_PER_DEG_LAT
+                bx, by = (b[1] - lng) * k, (b[0] - lat) * M_PER_DEG_LAT
+                dx, dy = bx - ax, by - ay
+                length_sq = dx * dx + dy * dy
+                t = 0.0 if length_sq == 0 else max(0.0, min(1.0, -(ax * dx + ay * dy) / length_sq))
+                px, py = ax + t * dx, ay + t * dy
+                d = math.hypot(px, py)
+                if d <= best_d:
+                    best, best_d = (lat + py / M_PER_DEG_LAT, lng + px / k), d
+        return best
 
 
 def coverage(path: list, index: FeatureIndex, radius_m: float) -> float:
@@ -203,26 +264,33 @@ def build_indexes(region_features: dict) -> dict:
     return {name: FeatureIndex([e for e in elements if select(e)]) for name, select in SELECTORS.items()}
 
 
+# 경로가 이 거리 안에 있으면 그 지형을 지나는 것으로 본다 (m)
+MEASURE_RADIUS = {
+    "coast": 200,     # 바다가 보일 만한 거리
+    "beach": 100,
+    "river": 80,
+    "lake": 100,
+    "park": 20,       # 공원 안이거나 바로 옆
+    "forest": 15,     # 숲 안을 지나는 구간만
+    "footpath": 8,    # 그 길 위를 달리는 구간만
+    "cycleway": 8,
+    "carfree": 8,     # 차가 못 다니는 길 위를 달리는 비율
+    "campus": 20,
+    "sports": 40,
+}
+
+
 def measure(path: list, indexes: dict) -> dict:
     """코스 경로의 풍경 측정값. 비율은 0~1, *_per_km는 km당 개수, *_m는 미터."""
     km = max(sum(haversine_m(a, b) for a, b in zip(path, path[1:])) / 1000, 0.1)
-    return {
-        "coast": coverage(path, indexes["coast"], 200),       # 바다가 보일 만한 거리
-        "beach": coverage(path, indexes["beach"], 100),
-        "river": coverage(path, indexes["river"], 80),
-        "lake": coverage(path, indexes["lake"], 100),
-        "park": coverage(path, indexes["park"], 20),          # 공원 안이거나 바로 옆
-        "forest": coverage(path, indexes["forest"], 15),      # 숲 안을 지나는 구간만
-        "footpath": coverage(path, indexes["footpath"], 8),   # 그 길 위를 달리는 구간만
-        "cycleway": coverage(path, indexes["cycleway"], 8),
-        "campus": coverage(path, indexes["campus"], 20),
-        "sports": coverage(path, indexes["sports"], 40),
-        "carfree": coverage(path, indexes["carfree"], 8),     # 차가 못 다니는 길 위를 달리는 비율
+    measures = {name: coverage(path, indexes[name], radius) for name, radius in MEASURE_RADIUS.items()}
+    measures.update({
         "bridge_run_m": longest_run_m(path, indexes["bridge"], 8),
         "heritage_per_km": round(count_near(path, indexes["heritage"], 120) / km, 2),
         "viewpoints": count_near(path, indexes["viewpoint"], 150),
         "shops_per_km": round(count_near(path, indexes["shops"], 50) / km, 2),
-    }
+    })
+    return measures
 
 
 # 태그를 붙이는 기준: (측정값, 최소값, 앱에 보여줄 설명).
@@ -281,11 +349,19 @@ def tags_for_path(path: list, course: dict = None):
 
     실시간으로 만든 코스에 쓴다. 지형 데이터가 없는 곳의 코스에 "사용자가 바다뷰를 요청했으니
     바다뷰"라고 붙이지 않기 위해, 확인할 수 없으면 태그를 붙이지 않고 None을 돌려준다.
+    여기서 새로 받지는 않는다 — 코스를 만들 때 받아 둔 주변 데이터나 지역 캐시만 본다.
     """
+    from . import area_cache
     from .scenery_osm import cached_regions, load_cached_region
 
     if not path:
         return None
+
+    area = area_cache.cached_area_for_path(path)
+    if area is not None:
+        measures = measure(path, area.indexes)
+        return measures, scenery_tags(measures, course or {})
+
     lats, lngs = [p[0] for p in path], [p[1] for p in path]
     for region, (south, west, north, east) in cached_regions().items():
         if south <= min(lats) and max(lats) <= north and west <= min(lngs) and max(lngs) <= east:

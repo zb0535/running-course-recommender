@@ -95,7 +95,10 @@ def tag_match(course: dict, user: dict) -> float:
     user_tags = set(user.get("environment_tags", []))
     if not user_tags:
         return 0.5
-    return sum(_tag_strength(tag, course) for tag in user_tags) / len(user_tags)
+    # 선택지 하나가 태그 여러 개에 대응하면('바다' = 바다뷰 또는 해변) 그중 가장 강한 것으로 친다.
+    # 태그마다 평균을 내면 바다뷰만 있는 코스가 '바다'를 절반만 만족한 것처럼 된다.
+    groups = user.get("scenery_groups") or [[tag] for tag in user_tags]
+    return sum(max(_tag_strength(tag, course) for tag in group) for group in groups) / len(groups)
 
 
 def component_scores(course: dict, user: dict, env_context: dict = None) -> dict:
