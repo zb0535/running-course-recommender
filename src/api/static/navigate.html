@@ -248,6 +248,7 @@
         <div class="compass-btns" id="compassBtns" hidden>
           <button id="voiceBtn" title="음성 안내 끄기/켜기">🔊</button>
           <button id="recenterBtn" title="현위치로 이동">📍</button>
+          <button id="graphBtn" title="그래프 검증 레이어" hidden>⌘</button>
         </div>
 
         <div class="turn-primary" id="turnPrimary" hidden>
@@ -448,6 +449,38 @@ const RUNNER_ICON_URL = 'data:image/svg+xml,' + encodeURIComponent(
 
 const NAV_PITCH = 62;   // 내비게이션처럼 비스듬히 내려다보는 각도
 const NAV_ZOOM = 17.2;
+// 일반 사용자에게는 선택 코스만 보여준다. ?graph_debug=1을 붙인 검증 화면에서만 도로 그래프를 켤 수 있다.
+const GRAPH_DEBUG = typeof location !== 'undefined' && new URLSearchParams(location.search).get('graph_debug') === '1';
+let graphVisible = false;
+
+function graphBbox(){
+  const b = map.getBounds();
+  return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(',');
+}
+
+async function setGraphOverlay(visible){
+  if (!map || !map.isStyleLoaded()) return;
+  const button = document.getElementById('graphBtn');
+  if (!GRAPH_DEBUG) return;
+  if (!map.getSource('graph-roads')){
+    const response = await fetch(`/map/graph?bbox=${encodeURIComponent(graphBbox())}`);
+    if (!response.ok) throw new Error('그래프 시각화 데이터를 불러오지 못했습니다');
+    const graph = await response.json();
+    const roads = { type: 'FeatureCollection', features: graph.features.filter(f => f.properties.feature_type === 'road_edge') };
+    const crossings = { type: 'FeatureCollection', features: graph.features.filter(f => f.properties.feature_type === 'crossing') };
+    map.addSource('graph-roads', { type: 'geojson', data: roads });
+    map.addSource('graph-crossings', { type: 'geojson', data: crossings });
+    map.addLayer({ id: 'graph-roads-line', type: 'line', source: 'graph-roads',
+      layout: { 'line-cap': 'round', 'line-join': 'round', visibility: 'none' },
+      paint: { 'line-color': '#62748a', 'line-width': 1.5, 'line-opacity': 0.45 } });
+    map.addLayer({ id: 'graph-crossings-dot', type: 'circle', source: 'graph-crossings',
+      layout: { visibility: 'none' }, paint: { 'circle-radius': 3.5, 'circle-color': '#f59e0b', 'circle-stroke-width': 1, 'circle-stroke-color': '#ffffff' } });
+  }
+  graphVisible = visible;
+  map.setLayoutProperty('graph-roads-line', 'visibility', visible ? 'visible' : 'none');
+  map.setLayoutProperty('graph-crossings-dot', 'visibility', visible ? 'visible' : 'none');
+  button.textContent = visible ? '⌘✓' : '⌘';
+}
 
 function markerEl(url, size){
   const el = document.createElement('div');
@@ -473,6 +506,7 @@ function drawCourse(course){
     .setLngLat(coords[0]).addTo(map);
 
   map.on('load', () => {
+    document.getElementById('graphBtn').hidden = !GRAPH_DEBUG;
     map.addSource('route', {
       type: 'geojson',
       data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords } },
@@ -752,6 +786,11 @@ document.getElementById('restartBtn').addEventListener('click', () => {
   speak('다시 시작합니다');
 });
 document.getElementById('recenterBtn').addEventListener('click', recenterOnRunner);
+document.getElementById('graphBtn').addEventListener('click', () => {
+  setGraphOverlay(!graphVisible).catch(error => {
+    document.getElementById('status').textContent = error.message;
+  });
+});
 document.getElementById('voiceBtn').addEventListener('click', (e) => {
   voiceOn = !voiceOn;
   e.currentTarget.textContent = voiceOn ? '🔊' : '🔇';
