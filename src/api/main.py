@@ -12,6 +12,7 @@
 import json
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import List, Literal, Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -36,6 +37,8 @@ from ..recommend.personalize import (explain, learn, load_profile, new_profile, 
                                      save_profile, weights_for)
 from ..recommend.score import component_scores, filter_by_required_tags, recommend
 from ..recommend.trim import truncate_course
+from ..recommend.graph_loop import graph_loop_course, load_engine
+from ..recommend.graph_loop_engine import RouteFailure
 from ..map_view.graph_geojson import parse_bbox, public_graph
 
 load_dotenv()
@@ -45,6 +48,8 @@ MAIN_DB_PATH = os.path.join(DATA_DIR, "courses.json")
 SAMPLE_DB_PATH = os.path.join(DATA_DIR, "courses.sample.json")
 # GraphML은 서버의 탐색용 원본이다. 브라우저에는 변환된 GeoJSON만 필요한 영역만 보낸다.
 GRAPH_GEOJSON_PATH = os.environ.get("GRAPH_GEOJSON_PATH", os.path.join(DATA_DIR, "graph", "yongbong.geojson"))
+GRAPH_LOOP_MAP_PATH = os.environ.get("GRAPH_LOOP_MAP_PATH", os.path.join(DATA_DIR, "graph", "yongbong.graphml"))
+GRAPH_LOOP_ENABLED = os.environ.get("GRAPH_LOOP_ENABLED", "0").lower() in {"1", "true", "yes"}
 
 # 키가 없으면 무엇이 안 되는지. 키를 소스에 넣지 않는 대신 이걸로 안내한다.
 API_KEYS = {
@@ -69,6 +74,13 @@ async def lifespan(app: FastAPI):
         lines += ["", "  해결: .env.example을 .env로 복사하고 키를 채운 뒤 서버를 다시 시작하세요.",
                   "        (DB에 저장된 코스 추천은 키 없이도 동작합니다)", "=" * 62, ""]
         print("\n".join(lines), flush=True)
+    # GraphML은 지역별로 수십~수백 MB까지 커질 수 있다. 일반 추천 배포에서는 로드하지 않고,
+    # 용봉동 파일럿을 명시적으로 켠 서버에서만 워커당 한 번 메모리에 올린다.
+    if GRAPH_LOOP_ENABLED:
+        app.state.graph_loop_engine = load_engine(GRAPH_LOOP_MAP_PATH)
+        print(f"[graph-loop] loaded {Path(GRAPH_LOOP_MAP_PATH).name}", flush=True)
+    else:
+        app.state.graph_loop_engine = None
     yield
 
 
@@ -151,6 +163,7 @@ class RecommendRequest(BaseModel):
     current_lng: Optional[float] = None
     max_distance_km: float = 5.0
     route_type: Literal["roundtrip", "loop", "oneway"] = "roundtrip"  # 왕복 / 순환 / 편도
+    loop_engine: Literal["tmap", "graphml"] = "tmap"  # graphml은 검증된 지역 파일럿에서만 명시적으로 사용
     user_id: Optional[str] = None           # 주면 이 사람의 만족도로 학습한 가중치로 추천한다
     destination: Optional[str] = None       # 목적지 장소 이름 (예: "오동도, 여수")
     destination_lat: Optional[float] = None  # 장소 이름 대신 좌표로 지정할 때
@@ -407,6 +420,18 @@ def _recommend(req: RecommendRequest, background_tasks: BackgroundTasks, user: d
             status_code=400,
             detail="순환 코스는 그 자리에서 만들기 때문에 현위치(current_lat, current_lng)가 필요합니다.",
         )
+
+    if req.loop_engine == "graphml":
+        if not wants_loop:
+            raise HTTPException(status_code=400, detail="GraphML 엔진은 순환(loop) 코스에만 사용할 수 있습니다.")
+        engine = getattr(app.state, "graph_loop_engine", None)
+        if engine is None:
+            raise HTTPException(status_code=503, detail="GraphML Loop 엔진이 비활성화되어 있습니다. GRAPH_LOOP_ENABLED=1을 설정하세요.")
+        try:
+            course = graph_loop_course(engine, req.current_lat, req.current_lng, target_km or 3.0)
+        except RouteFailure as error:
+            raise HTTPException(status_code=422, detail={"code": error.code, "message": error.message}) from error
+        return {"results": [{"course": course, "score": 1.0}], "source": "osm_graph"}
 
     prefer_live_loop = wants_loop
     if prefer_live_loop:
